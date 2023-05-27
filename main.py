@@ -53,6 +53,7 @@ def centralized_assistant(step_counter, actions):
 
 if __name__ == '__main__':
     # initialize
+    # initialize
     selected_routes = [random.randint(0, hp.CANDIDATE_ROUTE_NUM-1) for i in range(hp.REQUEST_NUM)]
     decentralized(selected_routes)
 
