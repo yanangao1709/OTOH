@@ -19,6 +19,7 @@ class RequestAndRouteGeneration:
         source = random.randint(1,self.nodes_num)
         destination = random.randint(1,self.nodes_num)
         volumn = random.randint(self.volumn_lower, self.volumn_upper)
+        print(1)
 
 
 
