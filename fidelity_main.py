@@ -87,12 +87,30 @@ def decoherence_time():
     plt.title("quantum states")
     plt.show()
 
+def calculate_fidelity():
+    X1 = [0.1381, 0.8523, 0.0096]
+    X2 = [0.4842, 0.0192, 0.183, 0.3126, 0.001]
+
+    for t in range(25):
+        sum1 = 0
+        for xs in X1:
+            sum1 += math.sqrt(xs * math.exp(-1 * tau * t))
+        sum1 +=  sum1 * gamma * ((2+4)/8 + (4+5)/15 + (5+3)/17)
+
+        sum2 = 0
+        for xss in X2:
+            sum2 += math.sqrt(xss * math.exp(-1 * tau * t))
+        sum2 += sum2 * gamma * ((2 + 2) / 7 + (2 + 2) / 21)
+
+        print(str(t) + '---------' + str(sum1) + '----' + str(sum2))
+
 
 if __name__ == '__main__':
     # nodes = initial()
     # run(nodes)
-    decoherence_qubits()
+    # decoherence_qubits()
     # decoherence_time()
+    calculate_fidelity()
 
 
 

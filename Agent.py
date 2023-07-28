@@ -1,5 +1,5 @@
 # ------actor-critic------repeater node agent-------
-# ------------------gaoyn 24052023------------------
+# ------------------Yanan Gao 24052023------------------
 import random
 import matplotlib.pyplot as plt
 import torch as T
@@ -18,9 +18,7 @@ class Net(nn.Module):
         self.input_layer = nn.Linear(input_shape, 32)
         self.hidden1 = nn.Linear(32, 64)
         self.hidden2 = nn.Linear(64, 64)
-        self.pi = []
-        for i in range(hp.REQUEST_NUM):
-            self.pi.append(nn.Linear(64, n_actions))
+        self.pi = nn.Linear(64, n_actions)
         self.V = nn.Linear(64, 1)
         self.optimizer = optim.Adam(self.parameters(), lr = hp.LR)
 
@@ -28,9 +26,7 @@ class Net(nn.Module):
         x = F.relu(self.input_layer(x))
         x = F.relu(self.hidden1(x))
         x = F.relu(self.hidden2(x))
-        pi = []
-        for r in range(hp.REQUEST_NUM):
-            pi.append(F.softmax(self.pi[r](x), dim=1))
+        pi = F.softmax(self.pi(x), dim=1)
         V = self.V(x)
         return pi, V
 
@@ -50,7 +46,7 @@ class A2CAgent():
         for i in range(hp.AGENT_NUM):
             self.agents.append(Net(hp.N_OBSERVATIONS, hp.N_ACTIONS))
             self.memories.append(np.zeros((hp.MEMORY_CAPACITY, hp.RECORD_LENGTH)))
-            self.log_prob.append([0,0,0])
+            self.log_prob.append(0)
 
         self.n_actions = hp.N_ACTIONS
         self.n_observation = hp.N_OBSERVATIONS
@@ -73,20 +69,17 @@ class A2CAgent():
         actions = []
 
         for agent in range(hp.AGENT_NUM):
-            action = []
             observation = observations[agent]
             obs = T.tensor([observation], dtype=T.float)
             probabilities, _ = self.agents[agent](obs)
-            for r in range(hp.REQUEST_NUM):
-                action_probs = T.distributions.Categorical(probabilities[r])
-                self.log_prob[agent][r] = action_probs.log_prob(action_probs.sample())
+            action_probs = T.distributions.Categorical(probabilities)
+            self.log_prob[agent] = action_probs.log_prob(action_probs.sample())
 
             if np.random.rand() <= hp.EPSILON:
-                for route_pro in probabilities:
-                    action.append(T.max(route_pro, 1)[1].data.item())
+                action = T.max(probabilities, 1)[1].data.item()
             else:
                 for i in range(hp.REQUEST_NUM):
-                    action.append(np.random.randint(0, hp.N_ACTIONS))
+                    action = np.random.randint(0, hp.N_ACTIONS)
             actions.append(action)
 
         return actions
@@ -104,20 +97,13 @@ class A2CAgent():
             batch_reward = T.FloatTensor(batch_memory[:, self.n_observation + 1: self.n_observation + 2])
             batch_next_obs = T.FloatTensor(batch_memory[:, -self.n_observation:])
 
-            # state = T.tensor([state], dtype=T.float)
-            # state_ = T.tensor([state_], dtype=T.float)
-            # reward = T.tensor(reward, dtype=T.float)
-
             _, critic_value = self.agents[agent].forward(batch_obs)
             _, critic_value_ = self.agents[agent].forward(batch_next_obs)
 
             delta = batch_reward + hp.GAMMA * critic_value_ - critic_value
 
-            actor_total_loss = 0
-            for r in range(hp.REQUEST_NUM):
-                actor_total_loss += -self.log_prob[agent][r] * delta
-            actor_loss = actor_total_loss/hp.REQUEST_NUM
-            # actor_loss = -self.log_prob[agent] * delta
+            actor_total_loss = -self.log_prob[agent] * delta
+            actor_loss = actor_total_loss
             critic_loss = delta ** 2
 
             loss = actor_loss + critic_loss

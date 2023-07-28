@@ -126,5 +126,5 @@ def testGorubi():
     except GurobiError:
         print('Error reported')
 
-integerRun()
-# linearRun()
+# integerRun()
+linearRun()
