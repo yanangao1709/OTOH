@@ -21,6 +21,9 @@ class RequestAndRouteGeneration:
         volumn = random.randint(self.volumn_lower, self.volumn_upper)
         print(1)
 
+    def route_generation(self):
+        test = 1
+
 
 
 
