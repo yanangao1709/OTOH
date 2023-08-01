@@ -22,11 +22,6 @@ def draw():
     for i in range(len(node1)):
         r = G.add_edge(node1[i], node2[i], length = length[i])
 
-    # paths = nx.shortest_simple_paths(G, 3,5)
-    # for c,p in enumerate(paths):
-    #     print(p)
-    # print(nx.shortest_path_length(G, source=3, target=5))
-
     nx.draw(G, pos=nx.spring_layout(G), with_labels=True, node_color='y',)
     plt.show()
 
