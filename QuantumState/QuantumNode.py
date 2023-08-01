@@ -44,7 +44,7 @@ class MultiqubitsEntanglement:
         self.entangled_state_basises = ns.qubits.combine_qubits(source_basises + destination_basises)
         prob_num = ns.qubits.reduced_dm(self.entangled_state_basises).shape[0] * \
                    ns.qubits.reduced_dm(self.entangled_state_basises).shape[1]
-        return np.random.dirichlet(np.ones(prob_num), size=1)
+        return np.random.dirichlet(np.ones(prob_num), size=1)[0]
 
 class QuantumNodeTopology:
     def __init__(self):
