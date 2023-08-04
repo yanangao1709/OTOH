@@ -38,6 +38,7 @@ class MultiqubitsEntanglement:
         source_basises = source.multi_qubits_state_basises
         destination_basises = destination.multi_qubits_state_basises
         self.entangled_state_basises = ns.qubits.combine_qubits(source_basises + destination_basises)
+        test = ns.qubits.reduced_dm(self.entangled_state_basises)  # 密度矩阵的表示让状态表示为2的2n次方
         prob_num = ns.qubits.reduced_dm(self.entangled_state_basises).shape[0] * \
                    ns.qubits.reduced_dm(self.entangled_state_basises).shape[1]
         return np.random.dirichlet(np.ones(prob_num), size=1)[0]

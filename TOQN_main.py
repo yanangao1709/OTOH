@@ -8,8 +8,6 @@ from gurobipy import *
 from Topology import HyperParameters as thp
 from Topology import RequestAndRouteGeneration as rrg
 
-GAMMA = 100
-ETA = 10
 
 class TOQN:
     def __init__(self):
@@ -49,12 +47,18 @@ class TOQN:
         # m.setObjective(, GRB.MAXIMIZE)
         test = 1
 
-    def getFidelity(self, r, k):
+    def getFidelity(self, r, k, ):
         fidelity = 0
         # obtain the quantum state
-        quantumState = qsm.QuantuamState()
+
         # obtain the route information
         rg = rrg.RequestAndRouteGeneration()
+
+    def addConstraints(self, m):
+        for i in range(self.request_num):
+            for j in range(self.candidate_route_num):
+                m.addConstr(Y_vars[i][j] * self.getFidelity(i,j) * )
+
 
     def obtainGlobalOptimal(self):
         try:
@@ -67,8 +71,11 @@ class TOQN:
                                     for k in range(self.node_num))
             m.setObjective(obj, GRB.MAXIMIZE)
 
-            # fidelity_cons =
-            # m.addConstr(, GRB.MINIMIZE)
+
+
+            # fidelity_cons
+
+            m.addConstr(, GRB.MINIMIZE)
 
 
 
