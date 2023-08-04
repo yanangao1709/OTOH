@@ -19,7 +19,6 @@ class QuantumNode:
         self.multi_qubits_state_basises = None
         self.create_qubits(node_capacity)
 
-
     def get_multiqubits_bisises(self):
         return self.multi_qubits_state_basises
 
@@ -28,17 +27,14 @@ class QuantumNode:
         self.multi_qubits_state_basises = ns.qubits.combine_qubits(self.qubits)
 
 class MultiqubitsEntanglement:
-    def __init__(self, node_source_id, node_destination_id):
-        self.source = node_source_id
-        self.destination = node_destination_id
+    def __init__(self):
         self.entangled_state_basises = None
         quantum_node_tp = QuantumNodeTopology()
         self.nodes_capacties = quantum_node_tp.get_node_capacity()
-        self.redefine_assign_qstate_of_multiqubits()
 
-    def redefine_assign_qstate_of_multiqubits(self):
-        source = QuantumNode(self.source, self.nodes_capacties[self.source])
-        destination = QuantumNode(self.destination, self.nodes_capacties[self.destination])
+    def redefine_assign_qstate_of_multiqubits(self, i, i_cp, j, j_cp):
+        source = QuantumNode(i, i_cp)
+        destination = QuantumNode(j, j_cp)
         source_basises = source.multi_qubits_state_basises
         destination_basises = destination.multi_qubits_state_basises
         self.entangled_state_basises = ns.qubits.combine_qubits(source_basises + destination_basises)
@@ -60,8 +56,6 @@ class QuantumNodeTopology:
 
     def get_node_capacity(self):
         return self.node_capacities
-
-
 
 
 if __name__ == '__main__':

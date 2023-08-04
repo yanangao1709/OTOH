@@ -1,34 +1,31 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #     Author: Yanan Gao                                       #
 #       Date: 28-07-2023                                      #
-#      Goals: request and candidate route generation                              #
+#      Goals: request and candidate route generation          #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import HyperParameters
+from Topology import HyperParameters as thp
 import numpy as np
 import pandas as pd
 import networkx as nx
 import random
+import Request
+
 
 class RequestAndRouteGeneration:
     def __init__(self):
-        self.nodes_num = HyperParameters.topology_myself_nodes_num
-        self.requests = []
-        self.volumn_upper = 10
-        self.volumn_lower = 2
-        self.requests = []
+        self.nodes_num = thp.topology_myself_nodes_num
+        self.volumn_upper = thp.volumn_upper
+        self.volumn_lower = thp.volumn_lower
         self.candidate_routes = {}
 
-    def request_generation(self):
-        source = random.randint(1,self.nodes_num)
-        destination = random.randint(1,self.nodes_num)
-        volumn = random.randint(self.volumn_lower, self.volumn_upper)
-        self.requests.append([source, destination, volumn])
-
-    def route_generation(self):
-        nodes_num = HyperParameters.topology_myself_nodes_num
+    def request_routes_generation(self):
+        requests = []
+        # candidate route generation
+        candidate_routes = [[] for r in requests]
+        nodes_num = thp.topology_myself_nodes_num
         nodes = [i + 1 for i in range(nodes_num)]
-        data = pd.read_csv(HyperParameters.topology_myself_data_path)
+        data = pd.read_csv(thp.topology_myself_data_path)
         G = nx.Graph()
         for node in nodes:
             G.add_node(node)
@@ -37,17 +34,30 @@ class RequestAndRouteGeneration:
         length = data["length"].values.tolist()
         for i in range(len(node1)):
             G.add_edge(node1[i], node2[i], length=length[i])
-        for index, r in self.requests:
-            self.candidate_routes[index] = []
+        for index, r in enumerate(requests):
+            candidate_routes[index] = []
             paths = nx.shortest_simple_paths(G, r[0], r[1])
-            for c,p in enumerate(paths):
+            for c, p in enumerate(paths):
                 if c == 6:
                     break
-                self.candidate_routes[index].append(p)
+                candidate_routes[index].append(p)
 
-if __name__ == '__main__':
-    r_r_g = RequestAndRouteGeneration()
-    r_r_g.route_generation()
+        # request generation
+        for i in range(thp.request_num):
+            r = Request()
+            r.setSource(random.randint(1,self.nodes_num))
+            r.setDestination(random.randint(1,self.nodes_num))
+            r.setVolumn(self.volumn_lower, self.volumn_upper)
+            r.setCandidateRoutes(candidate_routes[i])
+            requests.append(r)
+        return requests
+
+
+# just for test
+# if __name__ == '__main__':
+#     r_r_g = RequestAndRouteGeneration()
+#     requests = r_r_g.request_generation()
+#     candidate_routes = r_r_g.route_generation(requests)
 
 
 
