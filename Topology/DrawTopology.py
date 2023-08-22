@@ -3,11 +3,12 @@
 #       Date: 28-07-2023                                      #
 #      Goals: draw topology according to the data             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
 import networkx as nx
+import matplotlib
 import matplotlib.pyplot as plt
 from Topology import HyperParameters as thp
 import pandas as pd
+matplotlib.use("TkAgg")
 
 class DrawTopology:
     def __init__(self):
@@ -20,8 +21,19 @@ class DrawTopology:
             link_length[d[0]-1][d[1]-1] = d[2]
         return link_length
 
+    def getLinkLength(self):
+
+        data = pd.read_csv(thp.topology_myself_data_path)
+        node1 = data["node1"].values.tolist()
+        node2 = data["node2"].values.tolist()
+        length = data["length"].values.tolist()
+        link_lens = [[0] * len(node1) * len(node2)]
+        for i in range(len(node1)):
+            link_lens[node1[i]][node2[i]] = length[i]
+        return link_lens
+
     def draw(self):
-        nodes_num = HyperParameters.topology_myself_nodes_num
+        nodes_num = thp.topology_myself_nodes_num
         nodes = [i+1 for i in range(nodes_num)]
         data = pd.read_csv(thp.topology_myself_data_path)
         G = nx.Graph()
@@ -31,7 +43,7 @@ class DrawTopology:
         node2 = data["node2"].values.tolist()
         length = data["length"].values.tolist()
         for i in range(len(node1)):
-            r = G.add_edge(node1[i], node2[i], length = length[i])
+            G.add_edge(node1[i], node2[i], length = length[i])
 
         nx.draw(G, pos=nx.spring_layout(G), with_labels=True, node_color='y',)
         plt.show()
@@ -39,5 +51,4 @@ class DrawTopology:
 # just for test
 if __name__ == '__main__':
     testDraw = DrawTopology()
-    link_lens = testDraw.getLinkLength()
-    test = 1
+    link_lens = testDraw.draw()

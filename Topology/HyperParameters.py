@@ -5,3 +5,5 @@ request_num = 3
 candidate_route_num = 6
 volumn_upper = 10
 volumn_lower = 2
+
+T_thr = 100

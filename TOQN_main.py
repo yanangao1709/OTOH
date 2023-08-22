@@ -14,6 +14,7 @@ class TOQN:
         self.request_num = thp.request_num
         self.candidate_route_num = thp.candidate_route_num
         self.node_num = thp.topology_myself_nodes_num
+        self.T_thr = thp.T_thr
 
     def getRequetsandCandidateRoutes(self):
         rg = rrg.RequestAndRouteGeneration()
@@ -65,10 +66,11 @@ class TOQN:
             m = Model("IntegerProblem")
             Y_vars, X_vars = self.addVar(m)
 
-            obj = quicksum(Y_vars[i][j] * X_vars[i][k]
-                                    for i in range(self.request_num)
-                                    for j in range(self.candidate_route_num)
-                                    for k in range(self.node_num))
+            obj = quicksum(Y_vars[r][k][t] * X_vars[r][i]
+                                    for r in range(self.request_num)
+                                    for k in range(self.candidate_route_num)
+                                    for t in range(self.T_thr)
+                                    for i in range(self.node_num))
             m.setObjective(obj, GRB.MAXIMIZE)
 
 
