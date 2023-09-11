@@ -4,17 +4,18 @@
 #      Goals: obtain the global optimal solution              #
 #             of TOQN problem                                 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# TOQN can not be solved by gurobi
 from gurobipy import *
-from Topology import HyperParameters as thp
-from Topology import RequestAndRouteGeneration as rrg
+import TOQNHyperparameters as tohp
+from Topology import RequestAndRouteGeneration as rrg, TOQNTopology as toTpy
 
 
 class TOQN:
     def __init__(self):
-        self.request_num = thp.request_num
-        self.candidate_route_num = thp.candidate_route_num
-        self.node_num = thp.topology_myself_nodes_num
-        self.T_thr = thp.T_thr
+        self.request_num = tohp.request_num
+        self.candidate_route_num = tohp.candidate_route_num
+        self.node_num = tohp.topology_myself_nodes_num
+        self.T_thr = tohp.T_thr
 
     def getRequetsandCandidateRoutes(self):
         rg = rrg.RequestAndRouteGeneration()
@@ -23,19 +24,25 @@ class TOQN:
         return requests, candidate_routes
 
     def addVar(self, m):
-        y_vars = m.addVars(self.request_num*self.candidate_route_num, vtype=GRB.BINARY)
-        x_vars = m.addVars(self.request_num*self.node_num, vtype=GRB.INTEGER)
+        y_vars = m.addVars(self.request_num*self.candidate_route_num*self.T_thr, vtype=GRB.BINARY)
+        x_vars = m.addVars(self.request_num*self.node_num*self.T_thr, vtype=GRB.INTEGER)
         Y_vars = []
         for i in range(self.request_num):
             Y_temp = []
             for j in range(self.candidate_route_num):
-                Y_temp.append(y_vars[i*self.request_num+j])
+                Y_tt = []
+                for t in range(tohp.T_thr):
+                    Y_tt.append(y_vars[i*self.request_num+j*self.candidate_route_num+t])
+                Y_temp.append(Y_tt)
             Y_vars.append(Y_temp)
         X_vars = []
         for i in range(self.request_num):
             X_temp = []
             for j in range(self.node_num):
-                X_temp.append(x_vars[i*self.request_num+j])
+                X_tt = []
+                for t in range(tohp.T_thr):
+                    X_tt.append(x_vars[i*self.request_num+j*self.node_num+t])
+                X_temp.append(X_tt)
             X_vars.append(X_temp)
         return Y_vars, X_vars
 
@@ -55,33 +62,38 @@ class TOQN:
         # obtain the route information
         rg = rrg.RequestAndRouteGeneration()
 
-    def addConstraints(self, m):
-        for i in range(self.request_num):
-            for j in range(self.candidate_route_num):
-                m.addConstr(Y_vars[i][j] * self.getFidelity(i,j) * )
+    # def addConstraints(self, m):
+    #     for i in range(self.request_num):
+    #         for j in range(self.candidate_route_num):
+    #             m.addConstr(Y_vars[i][j] * self.getFidelity(i,j) * )
+
+    def getMeanResource(self, r, k, t, x_vals):
+        for i in rang(toTpy.hops[r][k]):
+            average = 3
 
 
     def obtainGlobalOptimal(self):
         try:
+            # 定义问题
             m = Model("IntegerProblem")
+            # 定义变量
             Y_vars, X_vars = self.addVar(m)
 
-            obj = quicksum(Y_vars[r][k][t] * X_vars[r][i]
+            # 定义目标函数
+            # mean_res =
+            obj = quicksum(Y_vars[r][k][t] * toTpy.H_RKN[r][k][i]*X_vars[r][i][t]
                                     for r in range(self.request_num)
                                     for k in range(self.candidate_route_num)
                                     for t in range(self.T_thr)
                                     for i in range(self.node_num))
             m.setObjective(obj, GRB.MAXIMIZE)
+            # 定义约束
+            # m.addConstr(, GRB.MINIMIZE)
 
-
-
-            # fidelity_cons
-
-            m.addConstr(, GRB.MINIMIZE)
-
-
-
-
+            m.optimize()
+            print('Optimal solution', end=" ")
+            for i in m.getVars():
+                print('%s = %g' % (i.varName, i.x), end=" ")
 
             # # fidelity
             # m.addConstr((3 / 250) * y11 >= F_thr)

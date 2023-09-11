@@ -27,9 +27,11 @@ class DrawTopology:
         node1 = data["node1"].values.tolist()
         node2 = data["node2"].values.tolist()
         length = data["length"].values.tolist()
-        link_lens = [[0] * len(node1) * len(node2)]
+        link_lens = [[0] * self.node_num for i in range(self.node_num)]
         for i in range(len(node1)):
-            link_lens[node1[i]][node2[i]] = length[i]
+            link_lens[node1[i]-1][node2[i]-1] = length[i]
+            link_lens[node2[i] - 1][node1[i] - 1] = length[i]
+        print(link_lens)
         return link_lens
 
     def draw(self):
@@ -51,4 +53,4 @@ class DrawTopology:
 # just for test
 if __name__ == '__main__':
     testDraw = DrawTopology()
-    link_lens = testDraw.draw()
+    link_lens = testDraw.getLinkLength()
