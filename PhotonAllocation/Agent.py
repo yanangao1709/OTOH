@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import numpy as np
-import HyperParameters as hp
+from Test.Example import HyperParameters as hp
 
 
 class Net(nn.Module):

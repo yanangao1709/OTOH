@@ -1,11 +1,10 @@
 import random
-import numpy as np
 import pandas as pd
-from Agent import A2CAgent
-from QuantumNetwork import Env
+from PhotonAllocation.Agent import A2CAgent
+from PhotonAllocation.QuantumNetwork import Env
 import matplotlib.pyplot as plt
-import HyperParameters as hp
-from Route_Selection import RouteSelectionILP
+from Test.Example import HyperParameters as hp
+from Test.Example.Route_Selection import RouteSelectionILP
 
 
 def decentralized (episode, selected_routes, env, net):

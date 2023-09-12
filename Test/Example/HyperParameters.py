@@ -1,5 +1,4 @@
 # Topology
-import random
 
 TOPOLOGY_SCALE = 18
 EDGES = [[0,4,3,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
@@ -24,7 +23,8 @@ EDGES = [[0,4,3,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
 # NODE_CAPACITY = [2,3,3,4,6,4,2,5,1,3,7,3,2,4,2,4,1,2]
 NODE_CAPACITY = [4, 9, 8, 4, 3, 6, 8, 4, 6, 5, 8, 2, 4, 8, 7, 9, 8, 7]
 
-import H_IJRK
+from Test.Example import H_IJRK
+
 H_IJRK = H_IJRK.H_IJRK
 
 # candidate route information

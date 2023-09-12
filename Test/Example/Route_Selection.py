@@ -1,6 +1,6 @@
 import numpy as np
 from gurobipy import *
-import HyperParameters as hp
+from Test.Example import HyperParameters as hp
 from gurobipy import GRB, quicksum as qsum
 import random
 
@@ -24,7 +24,7 @@ class RouteSelectionILP:
                     continue
                 if (self.M_i_r[r][i] + self.M_i_r[r][j]) == 0:
                     continue
-                delay += hp.H_IJRK[i][j][r][k] * (hp.EDGES[i][j])/(hp.GAMMA*(self.M_i_r[r][i] + self.M_i_r[r][j]))
+                delay += Test.Example.H_IJRK[i][j][r][k] * (hp.EDGES[i][j]) / (hp.GAMMA * (self.M_i_r[r][i] + self.M_i_r[r][j]))
         return delay
 
     def integerRun(self):

@@ -21,7 +21,8 @@
 # LENGTH = [11, 10, 17]
 import math
 
-import HyperParameters as hp
+from Test.Example import HyperParameters as hp
+
 
 class Env:
     def __init__(self, Selected_routes):
@@ -120,7 +121,7 @@ class Env:
                     continue
                 if (actions[i] + actions[j]) == 0:
                     continue
-                delay += hp.H_IJRK[i][j][r][k] * (hp.EDGES[i][j])/(hp.GAMMA*(actions[i] + actions[j]))
+                delay += Test.Example.H_IJRK[i][j][r][k] * (hp.EDGES[i][j]) / (hp.GAMMA * (actions[i] + actions[j]))
         return delay
 
     def calculate_reward(self, step_counter, actions):
@@ -141,7 +142,7 @@ class Env:
         qubits_allocated = 0
         route_information = hp.REQUESTS_ROUTES[step_counter][self.selected_routes[step_counter]]
         for l in range(len(route_information)-1):
-            if hp.H_IJRK[route_information[l]-1][route_information[l+1]-1][step_counter][self.selected_routes[step_counter]] == 0:
+            if Test.Example.H_IJRK[route_information[l] - 1][route_information[l + 1] - 1][step_counter][self.selected_routes[step_counter]] == 0:
                 continue
             qubits_allocated += actions[route_information[l]-1]
         qubits_allocated += actions[route_information[l+1]-1]

@@ -1,6 +1,5 @@
 import Network
-import Agent
-import numpy as np
+from PhotonAllocation import Agent
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import math
