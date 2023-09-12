@@ -1,14 +1,13 @@
+# TOQN can not be solved by Gurobi
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #     Author: Yanan Gao                                       #
 #       Date: 28-07-2023                                      #
 #      Goals: obtain the global optimal solution              #
 #             of TOQN problem                                 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# TOQN can not be solved by gurobi
 from gurobipy import *
 import TOQNHyperparameters as tohp
 from Topology import RequestAndRouteGeneration as rrg, TOQNTopology as toTpy
-
 
 class TOQN:
     def __init__(self):
@@ -71,7 +70,6 @@ class TOQN:
         for i in rang(toTpy.hops[r][k]):
             average = 3
 
-
     def obtainGlobalOptimal(self):
         try:
             # 定义问题
@@ -94,7 +92,6 @@ class TOQN:
             print('Optimal solution', end=" ")
             for i in m.getVars():
                 print('%s = %g' % (i.varName, i.x), end=" ")
-
             # # fidelity
             # m.addConstr((3 / 250) * y11 >= F_thr)
             # m.addConstr((0.1639) * y12 >= F_thr)
