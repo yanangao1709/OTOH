@@ -6,7 +6,7 @@
 import math
 # from QuantumState.QuantumNode import MultiqubitsEntanglement as MQE
 from QuantumState import HyperParameters as qshp
-from Topology.TOQNTopology import ROUTES, LINK_LENS, H_RKN, HOPS
+from Topology.TOQNTopology import ROUTES, LINK_LENS, HOPS
 
 GAMMA = 100
 ETA = 10
@@ -28,9 +28,9 @@ class Fidelity:
         for i in range(H):
             if i==0:
                 continue
-            mulM *= M[r][route[i]]
-            sumM += M[r][route[i]]
-            sumLink += LINK_LENS[route[i-1]][route[i]]
+            mulM *= M[r][route[i]-1]
+            sumM += M[r][route[i]-1]
+            sumLink += LINK_LENS[route[i-1]-1][route[i]-1]
         F = (pow(qshp.p, H) * pow(qshp.d, H/2) * mulM * pow((1-qshp.p), (qshp.d*sumM-H))
              * pow(math.e, -1*qshp.tau*sumLink*t))
         return F

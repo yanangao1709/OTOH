@@ -3,11 +3,13 @@
 #       Date: 13-06-2023                                      #
 #      Goals: topology data for TOQN                          #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-import TOQNHyperparameters as tohp
+from TOQN import TOQNHyperparameters as tohp
 
-# 5个请求
+# 5 requests
 requests = [[1,11], [2,13], [3,14], [2,9], [7,18]]
-# 每个请求三条路径
+# the volumn of each request
+D_VOLUMN = [10, 10, 10, 10, 10]
+# 3 routes of each request
 ROUTES = [
     [[1, 2, 5, 11],[1, 3, 5, 11],[1, 4, 5, 11]],
     [[2, 5, 11, 13],[2, 6, 14, 13],[2, 15, 14, 13]],
@@ -16,12 +18,25 @@ ROUTES = [
     [[7, 5, 8, 18],[7, 11, 12, 18],[7, 5, 4, 8, 18]]
 ]
 # route length
+# route_len = []
+# for i in range(5):
+#     r_len = []
+#     for j in range(3):
+#         l = 0
+#         rt = ROUTES[i][j]
+#         for h in range(HOPS[i][j]):
+#             if h==0:
+#                 continue
+#             l += LINK_LENS[rt[h-1]-1][rt[h]-1]
+#         r_len.append(l)
+#     route_len.append(r_len)
+# print(route_len)
 ROUTE_LEN = [
-    [],
-    [],
-    [],
-    [],
-    []
+    [18, 15, 21],
+    [17, 10, 15],
+    [9, 12, 14],
+    [16, 15, 12],
+    [19, 14, 26]
 ]
 # 每个链接的物理长度
 LINK_LENS = [
@@ -76,3 +91,6 @@ HOPS = [
     [4,4,4],
     [4,4,5]
 ]
+# node capacity
+NODE_CPA = [5,5,5,5,5,6,6,6,6,6,7,7,7,7,7,8,8,8]
+
