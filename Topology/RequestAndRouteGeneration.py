@@ -4,12 +4,10 @@
 #      Goals: request and candidate route generation          #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-from Topology import HyperParameters as thp
-import numpy as np
+from Topology import HyperParameters as thp, Request
 import pandas as pd
 import networkx as nx
 import random
-import Request
 
 
 class RequestAndRouteGeneration:
