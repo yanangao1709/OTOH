@@ -10,6 +10,7 @@ T_thr = 100
 if __name__ == '__main__':
     opr = OptimalRS()
     ps = StoragePolicy()
+    pa = RLPhotonAllocation()
 
     # random photon allocation
     photonallocated = [
@@ -24,3 +25,4 @@ if __name__ == '__main__':
         opr.set_photon_allocation(photonallocated)
         selected_route = opr.get_route_from_CRR(t, ps)
         ps.storage_policy(opr.get_Y(), photonallocated, t)
+
