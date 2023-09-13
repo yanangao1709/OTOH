@@ -17,7 +17,7 @@ class OptimalRS:
     def __init__(self):
         self.request_num = tohp.request_num
         self.candidate_route_num = tohp.candidate_route_num
-        self.node_num = tohp.topology_myself_nodes_num
+        self.node_num = tohp.nodes_num
         self.T_thr = tohp.T_thr
         self.acc_throughput = 0
         self.Y = None

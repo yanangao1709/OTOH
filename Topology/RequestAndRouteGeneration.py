@@ -4,7 +4,8 @@
 #      Goals: request and candidate route generation          #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-from Topology import HyperParameters as thp, Request
+from TOQN import TOQNHyperparameters as tohp
+from TOQN.Request import Request
 import pandas as pd
 import networkx as nx
 import random
@@ -12,18 +13,18 @@ import random
 
 class RequestAndRouteGeneration:
     def __init__(self):
-        self.nodes_num = thp.topology_myself_nodes_num
-        self.volumn_upper = thp.volumn_upper
-        self.volumn_lower = thp.volumn_lower
+        self.nodes_num = tohp.request_num
+        self.volumn_upper = tohp.volumn_upper
+        self.volumn_lower = tohp.volumn_lower
         self.candidate_routes = {}
 
     def request_routes_generation(self):
         requests = []
         # candidate route generation
         candidate_routes = [[] for r in requests]
-        nodes_num = thp.topology_myself_nodes_num
+        nodes_num = tohp.nodes_num
         nodes = [i + 1 for i in range(nodes_num)]
-        data = pd.read_csv(thp.topology_myself_data_path)
+        data = pd.read_csv(tohp.topology_data_path)
         G = nx.Graph()
         for node in nodes:
             G.add_node(node)
@@ -36,12 +37,12 @@ class RequestAndRouteGeneration:
             candidate_routes[index] = []
             paths = nx.shortest_simple_paths(G, r[0], r[1])
             for c, p in enumerate(paths):
-                if c == 6:
+                if c == 3:
                     break
                 candidate_routes[index].append(p)
 
         # request generation
-        for i in range(thp.request_num):
+        for i in range(tohp.request_num):
             r = Request()
             r.setSource(random.randint(1,self.nodes_num))
             r.setDestination(random.randint(1,self.nodes_num))

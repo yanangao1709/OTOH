@@ -5,11 +5,9 @@
 #             MultiqubitsEntanglement,                        #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 import random
-import netsquid as ns
 import numpy as np
-import HyperParameters as qs_hp
-from netsquid.components import QuantumMemory
-import Topology.HyperParameters as t_hp
+from QuantumState import HyperParameters as qs_hp
+import TOQN.TOQNHyperparameters as tohp
 
 class QuantumNode:
     def __init__(self, node_id, node_capacity):

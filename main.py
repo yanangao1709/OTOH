@@ -5,13 +5,20 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 from RouteSelection.OptimalRoute import OptimalRS
 from Common.PolicyStorage import StoragePolicy
-from ResourceAllocation import PhotonAllocation
+from Common.Throughput import Thr
+from ResourceAllocation.PhotonAllocation import PhotonAllocation
+from TOQN import TOQNHyperparameters as tohp
+from ResourceAllocation.DQNAgent import DQN
+from ResourceAllocation.QNenv import QuantumNetwork as QN
+
 T_thr = 100
+EPISODES = T_thr
 
 if __name__ == '__main__':
     opr = OptimalRS()
     ps = StoragePolicy()
     pa = PhotonAllocation()
+    thr = Thr()
 
     # random photon allocation
     photonallocated = [
@@ -21,7 +28,18 @@ if __name__ == '__main__':
         [2, 2, 2, 2, 2, 2, 2, 8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
         [2, 2, 2, 3, 2, 2, 2, 2, 2, 5, 2, 2, 2, 2, 2, 2, 8, 2]
     ]
-    for t in range(T_thr):
+    env = QN()
+    agents = {}
+    for m in range(tohp.nodes_num):
+        local_env = QN()
+        local_net = DQN()
+        agents[m] = [local_env, local_net]
+    for t in range(EPISODES):
+        states = []
+        for m in range(tohp.nodes_num):
+            states.append(agents[m][0].reset())
+
+
         # route selection
         opr.set_photon_allocation(photonallocated)
         selected_route = opr.get_route_from_CRR(t, ps)
@@ -33,6 +51,9 @@ if __name__ == '__main__':
         photonallocated = pa.get_PApolicy()
 
         # calculate throughput
+        t_thr = thr.get_throughput(selected_route, photonallocated)
+        print("In the" + str(t) + " times transmission, the throughput is " + str(t_thr))
+
 
 
 

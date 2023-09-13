@@ -6,12 +6,25 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 from Topology import RequestAndRouteGeneration as rrg
 from QuantumState.QuantumNode import MultiqubitsEntanglement as mqe
+from TOQN import TOQNHyperparameters as tohp
 
 
-class QuantumEnv:
+class QuantumNetwork:
     def __init__(self):
-        self.requests = self.generateRequests() # env初始化即可生成请求
-        self.multi_qubit_entgle = mqe()
+        self.requests = self.obtain_requests()
+        self.sr = None
+        self.agent_local_env = []
+
+    def obtain_requests(self):
+        rg = rrg.RequestAndRouteGeneration()
+        requests = rg.request_routes_generation()
+        return requests
+
+    def reset(self):
+        for m in range(tohp.topology_myself_nodes_num):
+            test = 1
+
+
 
 
     def generateRequestsandRoutes(self):
@@ -31,9 +44,6 @@ class QuantumEnv:
             link_qs = self.getEngState(i,)
         test = 1
 
-    def getRequetsandCandidateRoutes(self):
-        rg = rrg.RequestAndRouteGeneration()
-        requests = rg.request_routes_generation()
 
 
 
