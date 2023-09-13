@@ -1,7 +1,7 @@
 import random
 import pandas as pd
-from PhotonAllocation.Agent import A2CAgent
-from PhotonAllocation.QuantumNetwork import Env
+from ResourceAllocation.Agent import A2CAgent
+from ResourceAllocation.QuantumNetwork import Env
 import matplotlib.pyplot as plt
 from Test.Example import HyperParameters as hp
 from Test.Example.Route_Selection import RouteSelectionILP
