@@ -64,7 +64,7 @@ class DQN():
         self.eval_net, self.target_net = Net(), Net()
         # 存数据
         # self.memory = np.zeros((MEMORY_CAPACITY, 17))
-        self.memory = np.zeros((MEMORY_CAPACITY, 46))
+        self.memory = np.zeros((RLhp.MEMORY_CAPACITY, 46))
         # state, action ,reward and next state
         self.memory_counter = 0
         self.learn_counter = 0

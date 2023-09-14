@@ -22,6 +22,7 @@ class RequestAndRouteGeneration:
         requests = []
         # candidate route generation
         candidate_routes = [[] for r in range(tohp.request_num)]
+        can_route_hops = [[] for r in range(tohp.request_num)]
         nodes_num = tohp.nodes_num
         nodes = [i + 1 for i in range(nodes_num)]
         data = pd.read_csv(tohp.topology_data_path)
@@ -33,13 +34,10 @@ class RequestAndRouteGeneration:
         length = data["length"].values.tolist()
         for i in range(len(node1)):
             G.add_edge(node1[i], node2[i], length=length[i])
-        for index, r in enumerate(requests):
-            candidate_routes[index] = []
 
         # request generation
         for i in range(tohp.request_num):
             r = Request()
-            candidate_routes[i] = []
             r.setSource(random.randint(1, self.nodes_num))
             r.setDestination(random.randint(1, self.nodes_num))
             paths = nx.shortest_simple_paths(G, r.getSource(), r.getDestination())
@@ -47,8 +45,10 @@ class RequestAndRouteGeneration:
                 if c == 3:
                     break
                 candidate_routes[i].append(p)
+                can_route_hops[i].append(len(p))
             r.setVolumn(self.volumn_lower, self.volumn_upper)
             r.setCandidateRoutes(candidate_routes[i])
+            r.setCandRouteHops(can_route_hops)
             requests.append(r)
         return requests
 

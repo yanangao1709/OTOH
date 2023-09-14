@@ -15,16 +15,36 @@ class QuantumNetwork:
         self.requests = None
         self.selectedRoutes = None
         self.agent_local_env = []
+        self.node_remain_cap = None
+        self.H_RKN = []   # r 请求的 k路径 有没有经过这个点
 
     def obtain_requests(self):
         rg = rrg.RequestAndRouteGeneration()
         requests = rg.request_routes_generation()
         return requests
 
+    def obtain_H_RKN(self):
+        for r in range(tohp.request_num):
+            k_pos = []
+            for k in range(tohp.candidate_route_num):
+                pos = []
+                for m in range(tohp.nodes_num):
+                    if m+1 in self.requests[r][k]:
+                        pos.append(1)
+                    else:
+                        pos.append(0)
+                k_pos.append(pos)
+            self.H_RKN.append(k_pos)
+
+    def get_H_RKN(self):
+        return H_RKN
+
     def reset(self):
         if self.requests:
             self.requests.clear()
         self.requests = self.obtain_requests()
+        self.H_RKN = self.obtain_H_RKN()
+        self.node_remain_cap = toTop.NODE_CPA
         # random photon allocation
         photonallocated = [
             [2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 6, 2, 2, 2, 2, 2, 2],
@@ -39,7 +59,7 @@ class QuantumNetwork:
     def setSelectedRoutes(self, selectedroutes):
         self.selectedRoutes = selectedroutes
 
-    def transformStates(self, states):
+    def transformStates(self):
         states = {}
         for m in range(tohp.nodes_num):
             state = []
@@ -53,17 +73,26 @@ class QuantumNetwork:
                 else:
                     state.append(0)
             for v in range(tohp.nodes_num):
-                if toTop.LINK_LENS[m][n]:
+                if toTop.LINK_LENS[m][v]:
                     state.append(1)
                 else:
                     state.append(0)
-            state.append(toTop.NODE_CPA[m])
-        states[m] = state
+            state.append(self.node_remain_cap[m])
+            states[m] = state
         return states
 
     def step(self, actions):
-        thr = Thr()
-        test = 1
+        for m in range(tohp.nodes_num):
+            for r in range(tohp.request_num):
+                if self.node_remain_cap[m] - actions[m][r] >= 0:
+                    continue
+                r_canroutes = self.requests[r].getCandidateRoutes()
+                if m+1 in r_canroutes[self.selectedRoutes[r].index(1)]:
+                    self.node_remain_cap[m] -= actions[m][r]
+        next_states = transformStates()
+        throughput = Thr()
+        reward = throughput.get_throuthput(self.selectedRoutes, actions, self.H_RKN)
+        return next_states, reward
 
     def generateRequestsandRoutes(self):
         rg = rrg.RequestAndRouteGeneration()

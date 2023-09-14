@@ -18,7 +18,6 @@ EPISODES = T_thr
 if __name__ == '__main__':
     opr = OptimalRS()
     ps = StoragePolicy()
-    pa = PhotonAllocation()
 
     env = QN()
     agents = Agents()
@@ -36,14 +35,13 @@ if __name__ == '__main__':
             states = env.transformStates(states)
             # resource allocation
             actions = agents.choose_action(states)
-            photonallocated = pa.get_PApolicy()
-            next_states, reward, done = env.step(actions)
+            next_states, reward = env.step(actions)
             agents.store_trans(states, actions, reward, next_states)
             total_reward += reward
             if net.memory_counter >= RLhp.MEMORY_CAPACITY:
                 agents.learn()
             states = next_states
-
+            photonallocated = agents.get_PApolicy()
             if step_counter > T_thr:
                 break
         print(episode)

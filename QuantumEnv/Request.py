@@ -11,6 +11,7 @@ class Request:
         self.destination = None
         self.volumn = None
         self.candidate_routes = []
+        self.cand_route_hops = []
 
     def setSource(self, source):
         self.source = source
@@ -24,6 +25,9 @@ class Request:
     def setCandidateRoutes(self, candidateRoutes):
         self.candidate_routes = candidateRoutes
 
+    def setCandRouteHops(self, hops):
+        self.cand_route_hops = hops
+
     def getSource(self):
         return self.source
 
@@ -35,3 +39,6 @@ class Request:
 
     def getCandidateRoutes(self):
         return self.candidate_routes
+
+    def getCandRouteHops(self):
+        return self.cand_route_hops
