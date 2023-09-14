@@ -5,38 +5,25 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 from RouteSelection.OptimalRoute import OptimalRS
 from Common.PolicyStorage import StoragePolicy
-from Common.Throughput import Thr
 from ResourceAllocation.PhotonAllocation import PhotonAllocation
 from TOQN import TOQNHyperparameters as tohp
+from ResourceAllocation import RLHyperparameters as RLhp
 from ResourceAllocation.DQNAgent import DQN
 from QuantumEnv.QNEnv import QuantumNetwork as QN
 from ResourceAllocation.Agents import Agents
 
 T_thr = 100
 EPISODES = T_thr
-# random photon allocation
-photonallocated = [
-    [2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 6, 2, 2, 2, 2, 2, 2],
-    [2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 6, 2, 2, 2, 2, 2, 2, 2],
-    [2, 2, 2, 2, 2, 2, 2, 8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-    [2, 2, 2, 3, 2, 2, 2, 2, 2, 5, 2, 2, 2, 2, 2, 2, 8, 2]
-]
 
 if __name__ == '__main__':
     opr = OptimalRS()
     ps = StoragePolicy()
     pa = PhotonAllocation()
-    throughput = Thr()
 
     env = QN()
     agents = Agents()
-    for m in range(tohp.nodes_num):
-        local_env = QN()
-        local_net = DQN()
-        agents[m] = [local_env, local_net]
     for t in range(EPISODES):
-        states = env.reset()
+        states, photonallocated = env.reset()
         step_counter = 0
         total_reward = 0
         while True:
@@ -47,20 +34,22 @@ if __name__ == '__main__':
             ps.storage_policy(opr.get_Y(), photonallocated, t)
             env.setSelectedRoutes(selected_route)
             states = env.transformStates(states)
-
             # resource allocation
             actions = agents.choose_action(states)
-            photonallocated.clear()
             photonallocated = pa.get_PApolicy()
-
-            throughput.get_thr(photonallocated, photonallocated)
+            next_states, reward, done = env.step(actions)
+            agents.store_trans(states, actions, reward, next_states)
+            total_reward += reward
+            if net.memory_counter >= RLhp.MEMORY_CAPACITY:
+                agents.learn()
+            states = next_states
 
             if step_counter > T_thr:
                 break
-
-
-        # calculate throughput
-        t_thr = thr.get_throughput(selected_route, photonallocated)
+        print(episode)
+        acc_reward.append(total_reward / step_counter)  # total_reward/step_counter
+        axx.append(episode)
+        net.plot(net.ax, acc_reward)
         print("In the" + str(t) + " times transmission, the throughput is " + str(t_thr))
 
 

@@ -12,5 +12,11 @@ class Agents:
         actions = []
         return actions
 
+    def store_trans(self, states, actions, reward, next_states):
+        test  = 1
+
+    def learn(self):
+        test = 1
+
 
 

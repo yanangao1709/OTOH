@@ -6,6 +6,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 from QuantumEnv import RequestAndRouteGeneration as rrg
 from TOQN import TOQNHyperparameters as tohp
+from Common.Throughput import Thr
 
 
 class QuantumNetwork:
@@ -20,11 +21,27 @@ class QuantumNetwork:
         return requests
 
     def reset(self):
+        states = None
         if self.requests:
             self.requests.clear()
         self.requests = self.obtain_requests()
+        # random photon allocation
+        photonallocated = [
+            [2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 6, 2, 2, 2, 2, 2, 2],
+            [2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+            [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 6, 2, 2, 2, 2, 2, 2, 2],
+            [2, 2, 2, 2, 2, 2, 2, 8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+            [2, 2, 2, 3, 2, 2, 2, 2, 2, 5, 2, 2, 2, 2, 2, 2, 8, 2]
+        ]
+        return states, photonallocated
 
     def transformStates(self, states):
+        # 由原先的状态信息，转换为已知选择路径的信息
+
+        test = 1
+
+    def step(self, actions):
+        thr = Thr()
         test = 1
 
     def setSelectedRoutes(self, selectedroutes):
