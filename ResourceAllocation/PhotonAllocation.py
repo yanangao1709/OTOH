@@ -11,7 +11,7 @@ class PhotonAllocation:
         self.PApolicy = []
 
     def get_PApolicy(self):
-        rl = RLMain(self.selectedroute)
+        rl = RLMain()
         rl.run()
         return self.PApolicy
 

@@ -6,6 +6,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 from QuantumEnv import RequestAndRouteGeneration as rrg
 from TOQN import TOQNHyperparameters as tohp
+from Topology import TOQNTopology as toTop
 from Common.Throughput import Thr
 
 
@@ -21,7 +22,6 @@ class QuantumNetwork:
         return requests
 
     def reset(self):
-        states = None
         if self.requests:
             self.requests.clear()
         self.requests = self.obtain_requests()
@@ -33,19 +33,37 @@ class QuantumNetwork:
             [2, 2, 2, 2, 2, 2, 2, 8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
             [2, 2, 2, 3, 2, 2, 2, 2, 2, 5, 2, 2, 2, 2, 2, 2, 8, 2]
         ]
+        states = None
         return states, photonallocated
 
-    def transformStates(self, states):
-        # 由原先的状态信息，转换为已知选择路径的信息
+    def setSelectedRoutes(self, selectedroutes):
+        self.selectedRoutes = selectedroutes
 
-        test = 1
+    def transformStates(self, states):
+        states = {}
+        for m in range(tohp.nodes_num):
+            state = []
+            for r in range(tohp.request_num):
+                state.append(self.requests[r].getSource())
+                state.append(self.requests[r].getDestination())
+                state.append(self.requests[r].getVolumn())
+                r_canroutes = self.requests[r].getCandidateRoutes()
+                if m+1 in r_canroutes[self.selectedRoutes[r].index(1)]:
+                    state.append(1)
+                else:
+                    state.append(0)
+            for v in range(tohp.nodes_num):
+                if toTop.LINK_LENS[m][n]:
+                    state.append(1)
+                else:
+                    state.append(0)
+            state.append(toTop.NODE_CPA[m])
+        states[m] = state
+        return states
 
     def step(self, actions):
         thr = Thr()
         test = 1
-
-    def setSelectedRoutes(self, selectedroutes):
-        self.selectedRoutes = selectedroutes
 
     def generateRequestsandRoutes(self):
         rg = rrg.RequestAndRouteGeneration()

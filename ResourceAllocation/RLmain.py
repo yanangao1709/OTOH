@@ -10,8 +10,7 @@ from ResourceAllocation import RLHyperparameters as RLhp
 
 
 class RLMain:
-    def __init__(self, selectedroute):
-        self.sr = selectedroute
+    def __init__(self):
         self.agents = []
 
 

@@ -6,7 +6,7 @@
 
 class Agents:
     def __init__(self):
-        test = 1
+        self.agents = None
 
     def choose_action(self, states):
         actions = []
