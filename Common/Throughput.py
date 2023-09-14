@@ -7,11 +7,11 @@
 class Thr:
     def __int__(self):
         self.throughput = 0
+
+    def calculate_thr(self, selectedRoute, photonAllocated):
+        
         test = 1
 
-    def calculate_thr(self, selectedroute, photonallocation):
-        test = 1
-
-    def get_throughput(self, route, photon):
+    def get_thr(self, selectedRoute, photonAllocated):
         self.calculate_thr()
         return self.throughput

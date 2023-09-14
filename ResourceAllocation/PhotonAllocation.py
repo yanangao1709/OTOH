@@ -9,10 +9,6 @@ from ResourceAllocation.RLmain import RLMain
 class PhotonAllocation:
     def __int__(self):
         self.PApolicy = []
-        self.selectedroute = None
-
-    def setSelectedRoute(self, selectedroute):
-        self.selectedroute = selectedroute
 
     def get_PApolicy(self):
         rl = RLMain(self.selectedroute)

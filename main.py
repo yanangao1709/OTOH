@@ -10,6 +10,7 @@ from ResourceAllocation.PhotonAllocation import PhotonAllocation
 from TOQN import TOQNHyperparameters as tohp
 from ResourceAllocation.DQNAgent import DQN
 from QuantumEnv.QNEnv import QuantumNetwork as QN
+from ResourceAllocation.Agents import Agents
 
 T_thr = 100
 EPISODES = T_thr
@@ -26,9 +27,10 @@ if __name__ == '__main__':
     opr = OptimalRS()
     ps = StoragePolicy()
     pa = PhotonAllocation()
+    throughput = Thr()
 
     env = QN()
-    agents = {}
+    agents = Agents()
     for m in range(tohp.nodes_num):
         local_env = QN()
         local_net = DQN()
@@ -46,18 +48,16 @@ if __name__ == '__main__':
             env.setSelectedRoutes(selected_route)
             states = env.transformStates(states)
 
-            actions = net.choose_action(states)
+            # resource allocation
+            actions = agents.choose_action(states)
+            photonallocated.clear()
+            photonallocated = pa.get_PApolicy()
+
+            throughput.get_thr(photonallocated, photonallocated)
 
             if step_counter > T_thr:
                 break
 
-
-
-
-        # resource allocation
-        pa.setSelectedRoute(selected_route)
-        photonallocated.clear()
-        photonallocated = pa.get_PApolicy()
 
         # calculate throughput
         t_thr = thr.get_throughput(selected_route, photonallocated)
