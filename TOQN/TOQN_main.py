@@ -7,7 +7,9 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 from gurobipy import *
 import TOQNHyperparameters as tohp
-from Topology import RequestAndRouteGeneration as rrg, TOQNTopology as toTpy
+from Topology import TOQNTopology as toTpy
+from QuantumEnv import RequestAndRouteGeneration as rrg
+
 
 class TOQN:
     def __init__(self):

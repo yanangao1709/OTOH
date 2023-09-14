@@ -4,15 +4,14 @@
 #      Goals: implement the quantum network environment       #
 #             for request response                            #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-from Topology import RequestAndRouteGeneration as rrg
-from QuantumState.QuantumNode import MultiqubitsEntanglement as mqe
+from QuantumEnv import RequestAndRouteGeneration as rrg
 from TOQN import TOQNHyperparameters as tohp
 
 
 class QuantumNetwork:
     def __init__(self):
-        self.requests = self.obtain_requests()
-        self.sr = None
+        self.requests = None
+        self.selectedRoutes = None
         self.agent_local_env = []
 
     def obtain_requests(self):
@@ -21,11 +20,15 @@ class QuantumNetwork:
         return requests
 
     def reset(self):
-        for m in range(tohp.topology_myself_nodes_num):
-            test = 1
+        if self.requests:
+            self.requests.clear()
+        self.requests = self.obtain_requests()
 
+    def transformStates(self, states):
+        test = 1
 
-
+    def setSelectedRoutes(self, selectedroutes):
+        self.selectedRoutes = selectedroutes
 
     def generateRequestsandRoutes(self):
         rg = rrg.RequestAndRouteGeneration()

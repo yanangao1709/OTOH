@@ -4,8 +4,7 @@
 #      Goals: link fidelity calculation                       #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 import math
-# from QuantumState.QuantumNode import MultiqubitsEntanglement as MQE
-from QuantumState import HyperParameters as qshp
+from QuantumEnv import HyperParameters as qshp
 from Topology.TOQNTopology import ROUTES, LINK_LENS, HOPS
 
 GAMMA = 100

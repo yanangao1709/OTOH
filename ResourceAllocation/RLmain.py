@@ -5,10 +5,9 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 import numpy as np
 import pandas as pd
-from ResourceAllocation.DQNAgent import DQN
 import matplotlib.pyplot as plt
 from ResourceAllocation import RLHyperparameters as RLhp
-from ResourceAllocation.QNenv import QuantumNetwork as QN
+
 
 class RLMain:
     def __init__(self, selectedroute):

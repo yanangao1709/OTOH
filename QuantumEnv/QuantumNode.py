@@ -6,7 +6,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 import random
 import numpy as np
-from QuantumState import HyperParameters as qs_hp
+from QuantumEnv import HyperParameters as qs_hp
 import TOQN.TOQNHyperparameters as tohp
 
 class QuantumNode:
