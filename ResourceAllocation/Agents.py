@@ -3,13 +3,23 @@
 #       Date: 10-09-2023                                      #
 #      Goals: all Agents                                      #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+from ResourceAllocation.DQNAgent import DQN
+from TOQN import TOQNHyperparameters as tohp
 
 class Agents:
     def __init__(self):
-        self.agents = None
+        self.agents = {}
+        self.initial_allAgents()
+
+    def initial_allAgents(self):
+        for m in range(tohp.request_num):
+            self.agents[m] = DQN()
 
     def choose_action(self, states):
-        actions = []
+        actions = {}
+        for m in range(tohp.request_num):
+            action = self.agents[m].choose_action(states[m])
+            actions[m] = action
         return actions
 
     def store_trans(self, states, actions, reward, next_states):
