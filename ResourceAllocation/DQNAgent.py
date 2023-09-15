@@ -71,8 +71,6 @@ class DQN():
         self.optimizer = optim.Adam(self.eval_net.parameters(), RLhp.LR) # 优化器：针对主网络进行更新
         self.loss = nn.MSELoss() # 回归
 
-        self.fig, self.ax = plt.subplots()
-
     def store_trans(self, state, action, reward, next_state, memory_counter):
         index = memory_counter % RLhp.MEMORY_CAPACITY
         trans = np.hstack((state, action, [reward], next_state))#记录一条数据
@@ -92,15 +90,6 @@ class DQN():
                 a = np.random.randint(0,RLhp.NUM_ACTIONS)
                 action.append(a)
         return action
-
-    def plot(self, ax, x):
-        ax.cla()
-        ax.set_xlabel("episode")
-        ax.set_ylabel("accumulated reward")
-        ax.plot(x, 'b-')
-        plt.pause(0.00001)
-        if ax == 500:
-            plt.show()
 
     def learn(self):
         # 每学习100次之后，重新对target网络赋值
