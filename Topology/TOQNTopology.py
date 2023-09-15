@@ -6,7 +6,7 @@
 from TOQN import TOQNHyperparameters as tohp
 
 # 5 requests
-requests = [[1,11], [2,13], [3,14], [2,9], [7,18]]
+requestsSet = [[1,11], [2,13], [3,14], [2,9], [7,18]]
 # the volumn of each request
 D_VOLUMN = [10, 10, 10, 10, 10]
 # 3 routes of each request

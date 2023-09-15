@@ -6,26 +6,19 @@
 from TOQN import TOQNHyperparameters as tohp
 
 class Thr:
-    def __int__(self):
-        self.throughput = 0
-        self.his_thr = 0
+    def __init__(self):
+        self.his_thr = [0 for r in range(tohp.request_num)]
 
-    def calculate_thr(self, selectedRoute, photonAllocated, H_RKN):
+    def calculate_thr(self, requests, selectedRoute, photonAllocated, H_RKN):
         for r in range(tohp.request_num):
-            for k in range(tohp.candidate_route_num):
-                for m in range(tohp.nodes_num):
-                    H_RKN[r][k][m] * photonAllocated[m][r]
+            totalPho = 0
+            route = selectedRoute[r].index(1)
+            for m in range(tohp.nodes_num):
+                totalPho += H_RKN[r][route][m] * photonAllocated[m][r]
+            r_thr = totalPho/requests[r].getCandRouteHops()[route]
+            self.his_thr[r] += r_thr
+        return sum(self.his_thr)
 
-
-        obj = quicksum(Y_vars[r][k] * quicksum(H_RKN[r][k][i] * self.M[r][i]
-                                               for i in range(self.node_num)
-                                               ) / HOPS[r][k]
-                       for r in range(self.request_num)
-                       for k in range(self.candidate_route_num)
-                       )
-        self.throughput +=
-        self.his_thr += self.throughput
-
-    def get_throuthput(self, selectedRoutes, photonAllocated, H_RKN):
-        self.calculate_thr(selectedRoutes, photonAllocated)
-        return self.throughput
+    def get_throuthput(self, requests, selectedRoutes, photonAllocated, H_RKN):
+        total_thr = self.calculate_thr(requests, selectedRoutes, photonAllocated, H_RKN)
+        return total_thr

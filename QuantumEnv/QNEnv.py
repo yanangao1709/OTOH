@@ -29,7 +29,8 @@ class QuantumNetwork:
             for k in range(tohp.candidate_route_num):
                 pos = []
                 for m in range(tohp.nodes_num):
-                    if m+1 in self.requests[r][k]:
+                    route = self.requests[r].getCandidateRoutes()
+                    if m+1 in route[k]:
                         pos.append(1)
                     else:
                         pos.append(0)
@@ -37,13 +38,13 @@ class QuantumNetwork:
             self.H_RKN.append(k_pos)
 
     def get_H_RKN(self):
-        return H_RKN
+        return self.H_RKN
 
     def reset(self):
         if self.requests:
             self.requests.clear()
         self.requests = self.obtain_requests()
-        self.H_RKN = self.obtain_H_RKN()
+        self.obtain_H_RKN()
         self.node_remain_cap = toTop.NODE_CPA
         # random photon allocation
         photonallocated = [
@@ -59,7 +60,10 @@ class QuantumNetwork:
     def setSelectedRoutes(self, selectedroutes):
         self.selectedRoutes = selectedroutes
 
-    def transformStates(self):
+    def transformStates(self, states):
+        return self.get_states()
+
+    def get_states(self):
         states = {}
         for m in range(tohp.nodes_num):
             state = []
@@ -68,7 +72,7 @@ class QuantumNetwork:
                 state.append(self.requests[r].getDestination())
                 state.append(self.requests[r].getVolumn())
                 r_canroutes = self.requests[r].getCandidateRoutes()
-                if m+1 in r_canroutes[self.selectedRoutes[r].index(1)]:
+                if m + 1 in r_canroutes[self.selectedRoutes[r].index(1)]:
                     state.append(1)
                 else:
                     state.append(0)
@@ -89,9 +93,9 @@ class QuantumNetwork:
                 r_canroutes = self.requests[r].getCandidateRoutes()
                 if m+1 in r_canroutes[self.selectedRoutes[r].index(1)]:
                     self.node_remain_cap[m] -= actions[m][r]
-        next_states = transformStates()
+        next_states = self.get_states()
         throughput = Thr()
-        reward = throughput.get_throuthput(self.selectedRoutes, actions, self.H_RKN)
+        reward = throughput.get_throuthput(self.requests, self.selectedRoutes, actions, self.H_RKN)
         return next_states, reward
 
     def generateRequestsandRoutes(self):

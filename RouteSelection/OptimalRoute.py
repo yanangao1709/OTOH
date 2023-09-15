@@ -139,7 +139,8 @@ class OptimalRS:
 
     def get_route_from_CRR(self, t, ps):
         if self.Flag:
-            return self.obtain_optimal_route(t, ps)
+            self.obtain_optimal_route(t, ps)
+            return self.Y
         else:
             return ps.get_last_Y_policy()
 
