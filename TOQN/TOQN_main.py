@@ -1,4 +1,3 @@
-# TOQN can not be solved by Gurobi
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #     Author: Yanan Gao                                       #
 #       Date: 28-07-2023                                      #
@@ -7,8 +6,56 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 from gurobipy import *
 import TOQNHyperparameters as tohp
-from Topology import TOQNTopology as toTpy
+from QuantumEnv import HyperParameters as qshp
 from QuantumEnv import RequestAndRouteGeneration as rrg
+from Topology.TOQNTopology import ROUTES, LINK_LENS, HOPS, D_VOLUMN, H_RKN, ROUTE_LEN, NODE_CPA
+
+class TOQNConstraints:
+    def __init__(self, Y, X):
+        self.Y = Y
+        self.X = X
+        self.delay_flag = False
+        self.delay = 0
+
+    def obtain_delay(self, r, t):
+        if self.delay_flag:
+            return self.delay
+        transmitted_data = 0
+        for i in range(t):
+            for k in range(tohp.candidate_route_num):
+                transmitted_data_k_r = 0
+                for m in range(tohp.nodes_num):
+                    transmitted_data_k_r += H_RKN[r][k][m] * self.X[r][m][t]
+                transmitted_data += self.Y[r][k][t] * transmitted_data_k_r / HOPS[r][k]
+            if transmitted_data >= D_VOLUMN[r]:
+                self.delay = t
+                self.delay_flag = True
+        return self.delay
+
+    def obatin_fidelity(self, r, k, t):
+        route = ROUTES[r][k]
+        H = HOPS[r][k]
+        mulM = 1
+        sumM = 0
+        sumLink = 0
+        for i in range(H):
+            if i == 0:
+                continue
+            mulM *= self.X[r][route[i] - 1][t]
+            sumM += self.X[r][route[i] - 1][t]
+            sumLink += LINK_LENS[route[i - 1] - 1][route[i] - 1]
+        F = (pow(qshp.p, H) * pow(qshp.d, H / 2) * mulM * pow((1 - qshp.p), (qshp.d * sumM - H))
+             * pow(math.e, -1 * qshp.tau * sumLink * t))
+        return F
+
+    def obtain_node_cap(self, m, t):
+        occupied_photons = 0
+        for i in range(t):
+            for r in range(tohp.request_num):
+                for k in range(tohp.candidate_route_num):
+                    if self.Y[r][k][t] == 1 and H_RKN[r][k][m] == 1:
+                        occupied_photons += self.X[r][m][t]
+        return occupied_photons
 
 
 class TOQN:
@@ -47,89 +94,78 @@ class TOQN:
             X_vars.append(X_temp)
         return Y_vars, X_vars
 
-    def objective(self, m, y_var, x_var):
-        # 路径信息
-        # fidelity 计算
-        # delay计算
-        # capacity约束
-        # 变量加和约束
-        # m.setObjective(, GRB.MAXIMIZE)
-        test = 1
-
-    def getFidelity(self, r, k, ):
-        fidelity = 0
-        # obtain the quantum state
-
-        # obtain the route information
-        rg = rrg.RequestAndRouteGeneration()
-
-    # def addConstraints(self, m):
-    #     for i in range(self.request_num):
-    #         for j in range(self.candidate_route_num):
-    #             m.addConstr(Y_vars[i][j] * self.getFidelity(i,j) * )
-
-    def getMeanResource(self, r, k, t, x_vals):
-        for i in range(toTpy.hops[r][k]):
-            average = 3
-
     def obtainGlobalOptimal(self):
         try:
-            # 定义问题
-            m = Model("IntegerProblem")
-            # 定义变量
+            # define the model
+            m = Model("MixedIntegerNonLinearProblem")
+            # define variables
             Y_vars, X_vars = self.addVar(m)
-
-            # 定义目标函数
-            # mean_res =
-            obj = quicksum(Y_vars[r][k][t] * toTpy.H_RKN[r][k][i]*X_vars[r][i][t]
-                                    for r in range(self.request_num)
-                                    for k in range(self.candidate_route_num)
-                                    for t in range(self.T_thr)
-                                    for i in range(self.node_num))
+            cons = TOQNConstraints(Y_vars, X_vars)
+            # define objective
+            obj = quicksum(Y_vars[r][k][t] * quicksum(H_RKN[r][k][i] * X_vars[r][i][t]
+                                                   for i in range(self.node_num)
+                                                   ) / HOPS[r][k]
+                           for r in range(self.request_num)
+                           for k in range(self.candidate_route_num)
+                           for t in range(self.T_thr)
+                           )
             m.setObjective(obj, GRB.MAXIMIZE)
-            # 定义约束
-            # m.addConstr(, GRB.MINIMIZE)
-
+            # define constraints
+            for t in range(self.T_thr):
+                # fidelity
+                m.addConstrs(
+                    quicksum(
+                        Y_vars[r][k][t] * cons.obatin_fidelity(r, k, t)
+                        for k in range(self.candidate_route_num)
+                    ) >= tohp.F_thr
+                    for r in range(self.request_num)
+                )
+                # delay
+                m.addConstrs(
+                    quicksum(
+                        Y_vars[r][k][t] * ROUTE_LEN[r][k] + cons.obtain_delay(r, t)
+                        for k in range(self.candidate_route_num)
+                    ) <= tohp.D_thr
+                    for r in range(self.request_num)
+                )
+                # node_capacity
+                m.addConstrs(
+                    quicksum(
+                        Y_vars[r][k][t] * H_RKN[r][k][m] * X_vars[r][m][t] + cons.obtain_node_cap(m, t)
+                        for r in range(self.request_num)
+                        for k in range(self.candidate_route_num)
+                    ) <= NODE_CPA[m]
+                    for m in range(self.node_num)
+                )
+                # route selection
+                m.addConstrs(
+                    quicksum(Y_vars[r][k][t]
+                             for k in range(self.candidate_route_num)
+                             ) >= 1
+                    for r in range(self.request_num)
+                )
+                m.addConstrs(
+                    quicksum(Y_vars[r][k][t]
+                             for k in range(self.candidate_route_num)
+                             ) <= 1
+                    for r in range(self.request_num)
+                )
             m.optimize()
             print('Optimal solution', end=" ")
             for i in m.getVars():
                 print('%s = %g' % (i.varName, i.x), end=" ")
-            # # fidelity
-            # m.addConstr((3 / 250) * y11 >= F_thr)
-            # m.addConstr((0.1639) * y12 >= F_thr)
-            # m.addConstr((48 / 700) * y21 >= F_thr)
-            # m.addConstr((159 / 1400) * y22 >= F_thr)
-            # # node capacity
-            # m.addConstr(2 * y11 + 2 * y12 <= s1_capacity)
-            # m.addConstr(3 * y11 + 3 * y12 <= d1_capacity)
-            # m.addConstr(2 * y21 + 2 * y22 <= s2_capacity)
-            # m.addConstr(2 * y21 + 2 * y22 <= d2_capacity)
-            # m.addConstr(4 * y11 + 4 * y12 + 2 * y21 + 2 * y22 <= r1_capacity)
-            # m.addConstr(5 * y11 + 5 * y12 + 3 * y21 + 3 * y22 <= r2_capacity)
-            # # route selection
-            # m.addConstr(y11 + y12 >= 1)
-            # m.addConstr(y11 + y12 <= 1)
-            # m.addConstr(y21 + y22 >= 1)
-            # m.addConstr(y21 + y22 <= 1)
-            #
-            # m.write("IntegerProblem.lp")
-            #
-            # m.optimize()
-            #
-            # print('Optimal solution', end=" ")
-            # for i in m.getVars():
-            #     print('%s = %g' % (i.varName, i.x), end=" ")
-
+            m.optimize()
+            print('Optimal solution', end=" ")
+            for i in m.getVars():
+                print('%s = %g' % (i.varName, i.x), end=" ")
         except GurobiError as e:
             print('Error code' + str(e.errno) + ":" + str(e))
-
         except AttributeError:
             print('Encountered an attribute error')
-
 
 if __name__ == '__main__':
     toqn = TOQN()
     toqn.obtainGlobalOptimal()
-    requests, candidate_routes = toqn.getRequetsandCandidateRoutes()
+    # requests, candidate_routes = toqn.getRequetsandCandidateRoutes()
     test = 1
 

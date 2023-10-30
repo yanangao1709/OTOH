@@ -122,7 +122,7 @@ class OptimalRS:
                          ) <= 1
                 for r in range(self.request_num)
             )
-            m.write("RouteSelection-Linear.lp")
+            # m.write("RouteSelection-Linear.lp")
             m.optimize()
             print('Optimal solution', end=" ")
             sol =  []
