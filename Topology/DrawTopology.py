@@ -6,7 +6,7 @@
 import networkx as nx
 import matplotlib
 import matplotlib.pyplot as plt
-from Topology import HyperParameters as thp
+from Topology import TopoHyperParameters as thp
 import pandas as pd
 matplotlib.use("TkAgg")
 
@@ -22,7 +22,6 @@ class DrawTopology:
         return link_length
 
     def getLinkLength(self):
-
         data = pd.read_csv(thp.topology_myself_data_path)
         node1 = data["node1"].values.tolist()
         node2 = data["node2"].values.tolist()
@@ -53,4 +52,5 @@ class DrawTopology:
 # just for test
 if __name__ == '__main__':
     testDraw = DrawTopology()
-    link_lens = testDraw.getLinkLength()
+    testDraw.draw()
+    # link_lens = testDraw.getLinkLength()

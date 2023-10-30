@@ -71,8 +71,8 @@ class QuantumNetwork:
                 state.append(self.requests[r].getSource())
                 state.append(self.requests[r].getDestination())
                 state.append(self.requests[r].getVolumn())
-                r_canroutes = self.requests[r].getCandidateRoutes()
-                if m + 1 in r_canroutes[self.selectedRoutes[r].index(1)]:
+                r_canRoutes = self.requests[r].getCandidateRoutes()
+                if m + 1 in r_canRoutes[self.selectedRoutes[r].index(1)]:
                     state.append(1)
                 else:
                     state.append(0)
@@ -90,8 +90,8 @@ class QuantumNetwork:
             for r in range(tohp.request_num):
                 if self.node_remain_cap[m] - actions[m][r] >= 0:
                     continue
-                r_canroutes = self.requests[r].getCandidateRoutes()
-                if m+1 in r_canroutes[self.selectedRoutes[r].index(1)]:
+                r_canRoutes = self.requests[r].getCandidateRoutes()
+                if m+1 in r_canRoutes[self.selectedRoutes[r].index(1)]:
                     self.node_remain_cap[m] -= actions[m][r]
         next_states = self.get_states()
         throughput = Thr()
@@ -113,7 +113,6 @@ class QuantumNetwork:
         route = r.candidates[k]
         for i in range(len(route)):
             link_qs = self.getEngState(i,)
-        test = 1
 
 
 

@@ -3,11 +3,11 @@
 #       Date: 22-08-2023                                      #
 #      Goals: the hyperparameters for TOQN                    #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
+import os
 request_num = 5
 candidate_route_num = 3
 nodes_num = 18
-topology_data_path = '/Users/gaoyanan/Documents/QN-python/OTiM2R/Topology/data/topology-myself/topology.csv'
+topology_data_path = os.getcwd() + '\\Topology\\data\\topology-myself\\topology.csv'
 volumn_upper = 10
 volumn_lower = 2
 

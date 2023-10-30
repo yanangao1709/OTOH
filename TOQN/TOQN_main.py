@@ -69,7 +69,7 @@ class TOQN:
     #             m.addConstr(Y_vars[i][j] * self.getFidelity(i,j) * )
 
     def getMeanResource(self, r, k, t, x_vals):
-        for i in rang(toTpy.hops[r][k]):
+        for i in range(toTpy.hops[r][k]):
             average = 3
 
     def obtainGlobalOptimal(self):
