@@ -111,45 +111,49 @@ class TOQN:
                            )
             m.setObjective(obj, GRB.MAXIMIZE)
             # define constraints
-            for t in range(self.T_thr):
-                # fidelity
-                m.addConstrs(
-                    quicksum(
-                        Y_vars[r][k][t] * cons.obatin_fidelity(r, k, t)
-                        for k in range(self.candidate_route_num)
-                    ) >= tohp.F_thr
+            # fidelity
+            m.addConstrs(
+                quicksum(
+                    Y_vars[r][k][t] * cons.obatin_fidelity(r, k, t)
+                    for k in range(self.candidate_route_num)
+                    for t in range(self.T_thr)
+                ) >= tohp.F_thr
+                for r in range(self.request_num)
+            )
+            # delay
+            m.addConstrs(
+                quicksum(
+                    Y_vars[r][k][t] * ROUTE_LEN[r][k] + cons.obtain_delay(r, t)
+                    for k in range(self.candidate_route_num)
+                    for t in range(self.T_thr)
+                ) <= tohp.D_thr
+                for r in range(self.request_num)
+            )
+            # node_capacity
+            m.addConstrs(
+                quicksum(
+                    Y_vars[r][k][t] * H_RKN[r][k][m] * X_vars[r][m][t] + cons.obtain_node_cap(m, t)
                     for r in range(self.request_num)
-                )
-                # delay
-                m.addConstrs(
-                    quicksum(
-                        Y_vars[r][k][t] * ROUTE_LEN[r][k] + cons.obtain_delay(r, t)
-                        for k in range(self.candidate_route_num)
-                    ) <= tohp.D_thr
-                    for r in range(self.request_num)
-                )
-                # node_capacity
-                m.addConstrs(
-                    quicksum(
-                        Y_vars[r][k][t] * H_RKN[r][k][m] * X_vars[r][m][t] + cons.obtain_node_cap(m, t)
-                        for r in range(self.request_num)
-                        for k in range(self.candidate_route_num)
-                    ) <= NODE_CPA[m]
-                    for m in range(self.node_num)
-                )
-                # route selection
-                m.addConstrs(
-                    quicksum(Y_vars[r][k][t]
-                             for k in range(self.candidate_route_num)
-                             ) >= 1
-                    for r in range(self.request_num)
-                )
-                m.addConstrs(
-                    quicksum(Y_vars[r][k][t]
-                             for k in range(self.candidate_route_num)
-                             ) <= 1
-                    for r in range(self.request_num)
-                )
+                    for k in range(self.candidate_route_num)
+                    for t in range(self.T_thr)
+                ) <= NODE_CPA[m]
+                for m in range(self.node_num)
+            )
+            # route selection
+            m.addConstrs(
+                quicksum(Y_vars[r][k][t]
+                         for k in range(self.candidate_route_num)
+                         for t in range(self.T_thr)
+                         ) >= 1
+                for r in range(self.request_num)
+            )
+            m.addConstrs(
+                quicksum(Y_vars[r][k][t]
+                         for k in range(self.candidate_route_num)
+                         for t in range(self.T_thr)
+                         ) <= 1
+                for r in range(self.request_num)
+            )
             m.optimize()
             print('Optimal solution', end=" ")
             for i in m.getVars():
