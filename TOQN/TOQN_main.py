@@ -32,20 +32,29 @@ class TOQNConstraints:
                 self.delay_flag = True
         return self.delay
 
-    def obatin_fidelity(self, r, k, t):
+    def obtain_fidelity(self, m, r, k, t):
         route = ROUTES[r][k]
         H = HOPS[r][k]
-        mulM = 1
-        sumM = 0
+        mulM = m.addVar(vtype=GRB.INTEGER, name='mulM')
+        sumM = m.addVar(vtype=GRB.INTEGER, name='mulM')
         sumLink = 0
+        mulM_last = 1
         for i in range(H):
             if i == 0:
                 continue
-            mulM *= self.X[r][route[i] - 1][t]
+            m.addConstr(mulM == mulM_last * self.X[r][route[i] - 1][t])
+            mulM_last = mulM
             sumM += self.X[r][route[i] - 1][t]
             sumLink += LINK_LENS[route[i - 1] - 1][route[i] - 1]
-        F = (pow(qshp.p, H) * pow(qshp.d, H / 2) * mulM * pow((1 - qshp.p), (qshp.d * sumM - H))
-             * pow(math.e, -1 * qshp.tau * sumLink * t))
+        pow1 = m.addVar(vtype=GRB.CONTINUOUS, name="pow1")
+        pow2 = m.addVar(vtype=GRB.CONTINUOUS, name="pow2")
+        print('------')
+        m.addConstr(pow1 == pow((1 - qshp.p), (qshp.d * mulM - H)))
+        m.addConstr(pow2 == pow(math.e, -1 * qshp.tau * sumLink * t))
+        print('------')
+        F = (pow(qshp.p, H) * pow(qshp.d, H / 2) * mulM_last * pow1
+             * pow2)
+        print(F)
         return F
 
     def obtain_node_cap(self, m, t):
@@ -114,12 +123,13 @@ class TOQN:
             # fidelity
             m.addConstrs(
                 quicksum(
-                    Y_vars[r][k][t] * cons.obatin_fidelity(r, k, t)
+                    Y_vars[r][k][t] * cons.obtain_fidelity(m, r, k, t)
                     for k in range(self.candidate_route_num)
-                    for t in range(self.T_thr)
                 ) >= tohp.F_thr
                 for r in range(self.request_num)
+                for t in range(self.T_thr)
             )
+
             # delay
             m.addConstrs(
                 quicksum(
