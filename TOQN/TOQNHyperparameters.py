@@ -16,6 +16,6 @@ T_thr = 10
 # fidelity threshold
 F_thr = 0.00000001
 # delay threshold
-D_thr = 10
+D_thr = 260
 
 topology_myself_nodes_num = 18
