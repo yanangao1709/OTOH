@@ -11,61 +11,101 @@ from QuantumEnv import RequestAndRouteGeneration as rrg
 from Topology.TOQNTopology import ROUTES, LINK_LENS, HOPS, D_VOLUMN, H_RKN, ROUTE_LEN, NODE_CPA
 
 class TOQNConstraints:
-    def __init__(self, Y, X):
+    def __init__(self, m, Y, X):
         self.Y = Y
         self.X = X
-        self.delay_flag = False
-        self.delay = 0
+        self.delay_flag = m.addVar(vtype=GRB.BINARY)
+        self.FalseVar = m.addVar(vtype = GRB.BINARY)
+        m.addConstr(self.FalseVar == False)
+        self.TrueVar = m.addVar(vtype=GRB.BINARY)
+        m.addConstr(self.TrueVar == True)
+        self.delay = m.addVar(vtype=GRB.INTEGER)
 
-    def obtain_delay(self, r, t):
-        if self.delay_flag:
-            return self.delay
-        transmitted_data = 0
+        self.eps = 0.0001
+        self.M = 10 + self.eps
+
+    def obtain_new_delay(self, m, r, t):
+        sum_transmitted_data_last = 0
         for i in range(t):
             for k in range(tohp.candidate_route_num):
-                transmitted_data_k_r = 0
-                for m in range(tohp.nodes_num):
-                    transmitted_data_k_r += H_RKN[r][k][m] * self.X[r][m][t]
-                transmitted_data += self.Y[r][k][t] * transmitted_data_k_r / HOPS[r][k]
-            if transmitted_data >= D_VOLUMN[r]:
-                self.delay = t
-                self.delay_flag = True
+                sum_transmitted_dkr_last = 0
+                for v in range(tohp.nodes_num):
+                    sum_transmitted_dkr = m.addVar(vtype=GRB.CONTINUOUS, name='')
+                    m.addConstr(sum_transmitted_dkr == sum_transmitted_dkr_last + H_RKN[r][k][v] * self.X[r][v][t])
+                    sum_transmitted_dkr_last = sum_transmitted_dkr
+                sum_transmitted_data = m.addVar(vtype=GRB.CONTINUOUS, name='')
+                m.addConstr(
+                    sum_transmitted_data == sum_transmitted_data_last + self.Y[r][k][t] * sum_transmitted_dkr / HOPS[r][
+                        k])
+                sum_transmitted_data_last = sum_transmitted_data
+            volume = m.addVar(vtype=GRB.INTEGER)
+            m.addConstr(volume == D_VOLUMN[r])
+            tvar = m.addVar(vtype=GRB.INTEGER)
+            m.addConstr(tvar == t)
+            b = m.addVar(vtype=GRB.BINARY, name="b")
+            m.addConstr(sum_transmitted_data >= volume + self.eps - self.M * (1 - b), name="bigM_constr1")
+            m.addConstr(sum_transmitted_data <= volume + self.M * b, name="bigM_constr2")
+            m.addConstr((b == 1) >> (self.delay == tvar), name="indicator_constr1")
+            m.addConstr((b == 1) >> (self.delay_flag == self.TrueVar), name="indicator_constr1")
         return self.delay
+
+    def obtain_delay(self, m, r, t):
+        delay = m.addVar(vtype=GRB.INTEGER)
+
+        b = m.addVar(vtype=GRB.BINARY, name="b")
+        m.addConstr(self.delay_flag >= self.FalseVar + self.eps - self.M * (1 - b), name="bigM_constr1")
+        m.addConstr(self.delay_flag <= self.FalseVar + self.M * b, name="bigM_constr2")
+        m.addConstr((b == 1) >> (delay == self.delay), name="indicator_constr1")
+        m.addConstr((b == 0) >> (delay == self.obtain_new_delay(m, r, t)), name="indicator_constr1")
+        return delay
 
     def obtain_fidelity(self, m, r, k, t):
         route = ROUTES[r][k]
         H = HOPS[r][k]
-        mulM = m.addVar(vtype=GRB.INTEGER, name='mulM')
-        sumM = m.addVar(vtype=GRB.INTEGER, name='mulM')
+        sumM_last = 0
         sumLink = 0
         mulM_last = 1
         for i in range(H):
             if i == 0:
                 continue
+            mulM = m.addVar(vtype=GRB.INTEGER, name='mulM')
             m.addConstr(mulM == mulM_last * self.X[r][route[i] - 1][t])
             mulM_last = mulM
-            sumM += self.X[r][route[i] - 1][t]
+            sumM = m.addVar(vtype=GRB.INTEGER, name='sumM')
+            m.addConstr(sumM == sumM_last + self.X[r][route[i] - 1][t])
+            sumM_last = sumM
             sumLink += LINK_LENS[route[i - 1] - 1][route[i] - 1]
-        pow1 = m.addVar(vtype=GRB.CONTINUOUS, name="pow1")
-        pow2 = m.addVar(vtype=GRB.CONTINUOUS, name="pow2")
-        print('------')
-        m.addConstr(pow1 == pow((1 - qshp.p), (qshp.d * mulM - H)))
-        m.addConstr(pow2 == pow(math.e, -1 * qshp.tau * sumLink * t))
-        print('------')
-        F = (pow(qshp.p, H) * pow(qshp.d, H / 2) * mulM_last * pow1
-             * pow2)
-        print(F)
+        pow1 = m.addVar(vtype=GRB.CONTINUOUS, name='pow1')
+        sumX = m.addVar(vtype=GRB.CONTINUOUS)
+        m.addGenConstrExpA(sumX, pow1, 1 - qshp.p)
+        m.addConstr(sumX == qshp.d * sumM - H)
+        F = m.addVar(vtype=GRB.CONTINUOUS, name='fidelity')
+        m.addConstr(F == (pow(qshp.p, H) * pow(qshp.d, H / 2) * mulM_last * pow1
+             * pow(math.e, -1 * qshp.tau * sumLink * t)))
         return F
 
-    def obtain_node_cap(self, m, t):
-        occupied_photons = 0
+    def obtain_new_node_cap(self, m, v, i, r, k, sum_occupied_photons_last, sum_occupied_photons):
+        print('this is node capacity...')
+        if H_RKN[r][k][v] == 1:
+            m.addConstr(sum_occupied_photons == sum_occupied_photons_last + self.X[r][v][i])
+            sum_occupied_photons_last = sum_occupied_photons
+        else:
+
+            m.addConstr(sum_occupied_photons_last == 0)
+        return sum_occupied_photons_last
+
+    def obtain_node_cap(self, m, v, t):
+        b = m.addVar(vtype=GRB.BINARY, name="b")
+        sum_occupied_photons_last = 0
         for i in range(t):
             for r in range(tohp.request_num):
                 for k in range(tohp.candidate_route_num):
-                    if self.Y[r][k][t] == 1 and H_RKN[r][k][m] == 1:
-                        occupied_photons += self.X[r][m][t]
-        return occupied_photons
-
+                    sum_occupied_photons = m.addVar(vtype=GRB.INTEGER, name='')
+                    m.addConstr(self.Y[r][k][i] >= self.FalseVar + self.eps - self.M * (1 - b), name="bigM_constr1")
+                    m.addConstr(self.Y[r][k][i] <= self.FalseVar + self.M * b, name="bigM_constr2")
+                    m.addConstr((b == 1) >> (sum_occupied_photons_last == self.obtain_new_node_cap(m, v, i, r, k, sum_occupied_photons_last, sum_occupied_photons)), name="indicator_constr1")
+                    m.addConstr((b == 0) >> (sum_occupied_photons_last == 0), name="indicator_constr1")
+        return sum_occupied_photons_last
 
 class TOQN:
     def __init__(self):
@@ -109,7 +149,7 @@ class TOQN:
             m = Model("MixedIntegerNonLinearProblem")
             # define variables
             Y_vars, X_vars = self.addVar(m)
-            cons = TOQNConstraints(Y_vars, X_vars)
+            cons = TOQNConstraints(m, Y_vars, X_vars)
             # define objective
             obj = quicksum(Y_vars[r][k][t] * quicksum(H_RKN[r][k][i] * X_vars[r][i][t]
                                                    for i in range(self.node_num)
@@ -133,7 +173,7 @@ class TOQN:
             # delay
             m.addConstrs(
                 quicksum(
-                    Y_vars[r][k][t] * ROUTE_LEN[r][k] + cons.obtain_delay(r, t)
+                    Y_vars[r][k][t] * ROUTE_LEN[r][k] + cons.obtain_delay(m, r, t)
                     for k in range(self.candidate_route_num)
                     for t in range(self.T_thr)
                 ) <= tohp.D_thr
@@ -142,12 +182,12 @@ class TOQN:
             # node_capacity
             m.addConstrs(
                 quicksum(
-                    Y_vars[r][k][t] * H_RKN[r][k][m] * X_vars[r][m][t] + cons.obtain_node_cap(m, t)
+                    Y_vars[r][k][t] * H_RKN[r][k][v] * X_vars[r][v][t] + cons.obtain_node_cap(m, v, t)
                     for r in range(self.request_num)
                     for k in range(self.candidate_route_num)
                     for t in range(self.T_thr)
                 ) <= NODE_CPA[m]
-                for m in range(self.node_num)
+                for v in range(self.node_num)
             )
             # route selection
             m.addConstrs(
