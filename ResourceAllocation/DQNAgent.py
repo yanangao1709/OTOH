@@ -12,6 +12,8 @@ from torch import optim
 from matplotlib import pyplot as plt
 from TOQN import TOQNHyperparameters as tohp
 from ResourceAllocation import RLHyperparameters as RLhp
+from ResourceAllocation.reward_decomposition import decompose
+
 
 class Net(nn.Module):
     def __init__(self):
@@ -85,6 +87,28 @@ class DQN():
                 action.append(a)
         return action
 
+    def build_rewards(self, batch):
+        # Lets assume that the env gives us the rewards in local form
+        # Sum up local rewards in last dimension (shouldn't affect other envs but worry about that later)
+        global_rewards = th.sum(batch["reward"], dim=-1, keepdims=True)[:, :-1]
+        local_rewards = batch["reward"][:, :-1]
+
+        # We assume the rewards are valid (status=True) unless the decompose
+        # function fails, and that we should use all of them (reward mask)
+        reward_mask = None
+        status = True
+
+        # try decomposing global reward if necessary, and disregard the local rewards from the enivroment!
+        # This is exactly where we assume the local rewards are unobservable directly / not computed by the env,
+        # and where we compute them ourselves.
+        if self.args.decompose_reward:
+            status, reward_mask, local_rewards = decompose.decompose(self.args.reward_decomposer, batch)
+
+        if self.args.local_observer:
+            return status, reward_mask, local_rewards
+        return status, reward_mask, global_rewards
+
+
     def learn(self):
         # 每学习100次之后，重新对target网络赋值
         if self.learn_counter % RLhp.Q_NETWORK_ITERATION ==0:
@@ -98,8 +122,12 @@ class DQN():
         batch_state = torch.FloatTensor(batch_memory[:, :RLhp.NUM_STATES])
         # note that the action must be a int
         batch_action = torch.LongTensor(batch_memory[:, RLhp.NUM_STATES:RLhp.NUM_STATES+1].astype(int))
-        batch_reward = torch.FloatTensor(batch_memory[:, RLhp.NUM_STATES+1: RLhp.NUM_STATES+2])
         batch_next_state = torch.FloatTensor(batch_memory[:, -RLhp.NUM_STATES:])
+
+        # reward decomposition
+        batch_reward = self.build_rewards(batch_memory[:, RLhp.NUM_STATES+1: RLhp.NUM_STATES+2])
+        # batch_reward = torch.FloatTensor(batch_memory[:, RLhp.NUM_STATES+1: RLhp.NUM_STATES+2])
+
 
         q_eval_total = []
         for bs in self.eval_net(batch_state):
