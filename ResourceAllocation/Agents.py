@@ -26,7 +26,7 @@ class Agents:
         return actions
 
     def store_trans(self, states, actions, reward, next_states):
-        if self.memory_counter % 50 == 0:
+        if self.memory_counter % 500 == 0:
             print("The experience pool collects {} time experience".format(self.memory_counter))
         for m in range(tohp.nodes_num):
             self.agents[m].store_trans(states[m], actions[m], reward, next_states[m], self.memory_counter)

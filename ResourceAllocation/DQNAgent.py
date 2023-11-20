@@ -15,13 +15,9 @@ from ResourceAllocation import RLHyperparameters as RLhp
 
 class Net(nn.Module):
     def __init__(self):
-        # 在Net类中调用其父类的__init__方法。
-        # 这是为了继承父类的属性和方法，并初始化父类中定义的变量或对象。
-        # super()函数可以避免直接引用父类名，从而更加灵活和通用。
         super(Net, self).__init__()
         self.set_seed(1)
 
-        # self.fc1的输入维度为NUM_STATES，输出维度为30，
         self.input_layer = nn.Linear(RLhp.NUM_STATES, 32)
         self.input_layer.weight.data.normal_(0, 0.1)
 
@@ -62,10 +58,8 @@ class DQN():
         # eval_net 用于评估当前状态和动作之间的 Q 值，
         # 而 target_net 用于评估下一个状态和动作之间的 Q 值
         self.eval_net, self.target_net = Net(), Net()
-        # 存数据
-        # self.memory = np.zeros((MEMORY_CAPACITY, 17))
-        self.memory = np.zeros((RLhp.MEMORY_CAPACITY, 84))
-        # state, action ,reward and next state
+        # storage data of state, action ,reward and next state
+        self.memory = np.zeros((RLhp.MEMORY_CAPACITY, 42))
 
         self.learn_counter = 0
         self.optimizer = optim.Adam(self.eval_net.parameters(), RLhp.LR) # 优化器：针对主网络进行更新
@@ -85,7 +79,7 @@ class DQN():
             for av in action_value:
                 a = torch.max(av, 1)[1].data.item()
                 action.append(a)
-        else: # 随机
+        else:
             for i in range(tohp.request_num):
                 a = np.random.randint(0,RLhp.NUM_ACTIONS)
                 action.append(a)

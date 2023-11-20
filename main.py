@@ -13,7 +13,6 @@ from ResourceAllocation.DQNAgent import DQN
 from QuantumEnv.QNEnv import QuantumNetwork as QN
 from ResourceAllocation.Agents import Agents
 
-T_thr = 100
 EPISODES = 1000
 
 
@@ -33,27 +32,28 @@ if __name__ == '__main__':
             step_counter += 1
             # route selection
             opr.set_photon_allocation(photonallocated)
-            selected_route = opr.get_route_from_CRR(episode, ps)
-            ps.storage_policy(opr.get_Y(), photonallocated, episode)
+            # selected_route = opr.get_route_from_CRR(episode, ps)
+            selected_route = [[0, 0, 1], [1, 0, 0], [0, 0, 1], [0, 0, 1], [0, 0, 1]]
+            # ps.storage_policy(opr.get_Y(), photonallocated, episode)
             env.setSelectedRoutes(selected_route)
             states = env.transformStates(states)
             # resource allocation
             actions = agents.choose_action(states)
-            next_states, reward = env.step(actions)
+            next_states, reward, done = env.step(actions, step_counter)
             agents.store_trans(states, actions, reward, next_states)
             total_reward += reward
+            if done:
+                break
             if agents.memory_counter >= RLhp.MEMORY_CAPACITY:
                 agents.learn()
             states = next_states
             photonallocated = agents.get_PApolicy(actions)
-            print("------Step_counter is " + str(step_counter))
-            if step_counter > T_thr:
-                break
+            # print("------Step_counter is " + str(step_counter))
         print(episode)
         acc_reward.append(total_reward / step_counter)  # total_reward/step_counter
         axx.append(episode)
         agents.plot(agents.ax, acc_reward)
-        print("In the" + str(episode) + " times transmission, the total throughput of reqSet R is " + str(total_reward))
+        # print("In the" + str(episode) + " times transmission, the total throughput of reqSet R is " + str(total_reward))
     plt.xlabel("episodes")
     plt.ylabel("throughput")
     plt.plot(axx, acc_reward, 'b-')

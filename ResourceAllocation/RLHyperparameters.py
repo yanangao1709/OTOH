@@ -9,7 +9,7 @@ from TOQN import TOQNHyperparameters as tohp
 EPISODES = 1000
 MEMORY_CAPACITY = 200
 X_thr = 2
-NUM_STATES = 39
+NUM_STATES = 18
 NUM_ACTIONS = X_thr + 1
 LR = 0.005
 EPSILON = 0.9
