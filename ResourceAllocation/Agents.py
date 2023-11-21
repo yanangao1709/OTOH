@@ -13,6 +13,7 @@ class Agents:
         self.initial_allAgents()
         self.memory_counter = 0
         self.fig, self.ax = plt.subplots()
+        self.reward_decomposer = None
 
     def initial_allAgents(self):
         for m in range(tohp.nodes_num):
@@ -25,16 +26,16 @@ class Agents:
             actions[m] = action
         return actions
 
-    def store_trans(self, states, actions, reward, next_states):
+    def store_trans(self, states, actions, rewards, next_states):
         if self.memory_counter % 500 == 0:
             print("The experience pool collects {} time experience".format(self.memory_counter))
         for m in range(tohp.nodes_num):
-            self.agents[m].store_trans(states[m], actions[m], reward, next_states[m], self.memory_counter)
+            self.agents[m].store_trans(m, states[m], actions[m], rewards[m], next_states[m], self.memory_counter)
         self.memory_counter += 1
 
     def learn(self):
         for m in range(tohp.nodes_num):
-            self.agents[m].learn()
+            self.agents[m].learn(m)
 
     def get_PApolicy(self, actions):
         photonAllocated = []

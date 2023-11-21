@@ -12,6 +12,7 @@ from ResourceAllocation import RLHyperparameters as RLhp
 from ResourceAllocation.DQNAgent import DQN
 from QuantumEnv.QNEnv import QuantumNetwork as QN
 from ResourceAllocation.Agents import Agents
+from ResourceAllocation.reward_decomposition.decomposer import RewardDecomposer
 
 EPISODES = 1000
 
@@ -39,9 +40,9 @@ if __name__ == '__main__':
             states = env.transformStates(states)
             # resource allocation
             actions = agents.choose_action(states)
-            next_states, reward, done = env.step(actions, step_counter)
-            agents.store_trans(states, actions, reward, next_states)
-            total_reward += reward
+            next_states, rewards, done = env.step(actions, step_counter)
+            agents.store_trans(states, actions, rewards, next_states)
+            total_reward += sum(rewards)
             if done:
                 break
             if agents.memory_counter >= RLhp.MEMORY_CAPACITY:

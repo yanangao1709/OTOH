@@ -122,18 +122,31 @@ class QuantumNetwork:
 
     def transmit(self, actions):
         # reward = self.calculate_reward(actions) * 100
-        reward = sum(actions) * 100
+        # reward = sum(actions) * 100
+        # # 先状态迁移
+        # for i in range(route_num):
+        #     for j in range(node_num):
+        #         if H_RKN[i][j] == 1:
+        #             self.node_cap[j] -= actions[j][i]
+        # # 判断约束
+        # for j in range(node_num):
+        #     if self.node_cap[j] < 0:
+        #         reward -= 10
+        #
+        # return self.get_states(), reward
+
         # 先状态迁移
         for i in range(route_num):
             for j in range(node_num):
                 if H_RKN[i][j] == 1:
                     self.node_cap[j] -= actions[j][i]
-        # 判断约束
+        rewards = [0 for j in range(node_num)]
         for j in range(node_num):
+            rewards[j] += sum(actions[j]) * 100
             if self.node_cap[j] < 0:
-                reward -= 10
+                rewards[j] -= 100
+        return self.get_states(), rewards
 
-        return self.get_states(), reward
 
     def step(self, actions, step_counter):
         next_states, reward = self.transmit(actions)

@@ -10,33 +10,10 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import time
 
-# wierd bug where matplotlib spits out a ton of debug messages for no apparent reason
-import logging
 
-logging.getLogger('matplotlib').setLevel(logging.ERROR)
-
-
-# Shape Conventions:
-
-# Observations: [batch_size, ep_length, num_agents, obs_length]
-# Raw Outputs (Regression): List of List of [batch_size, ep_length, 1]
-# Raw Outputs (Regression): List of List of [batch_size, ep_length, num_classes (for that func)]
-# Flat Raw Outputs: Same as Raw outputs, only with a flattened list
-# Pred (Regression): [batch_size, ep_length, 1]
-# Pred (Classification): [batch_size, ep_length, num_global_classes]
-# Classes (Only Classification): [batch_size, ep_length, num_reward_functions]
-# Local Rewards (Both): [batch_size, ep_length, num_reward_functions, 1]
-# Agent Rewards (Both): [batch_size, ep_length, num_agents, 1]
-# Global Rewards: [batch_size, ep_length, 1]
-
-
-def train_decomposer(decomposer, batch, reward_optimizer):
+def train_decomposer(decomposer, memories, batch, reward_optimizer):
     # organize the data
-    reward_inputs, global_rewards, mask, _ = build_reward_data(decomposer, batch)
-    # th.set_printoptions(profile="full") # reset
-    #
-    # print(reward_inputs)
-    # print(global_rewards)
+    reward_inputs, global_rewards, mask, _ = build_reward_data(decomposer, memories, batch)
 
     raw_outputs = decomposer.forward(reward_inputs)
 
@@ -65,14 +42,8 @@ def train_decomposer(decomposer, batch, reward_optimizer):
     output.backward()
     reward_optimizer.step()
 
-    # visualize_decomposer_1d(decomposer, batch)
-    # visualize_data(reward_inputs, global_rewards)
 
 
-# decomposes the global rewards into local rewards
-# Returns (status, reward_mask, local_rewards) where
-# status - refers to the total reliability of the local rewards
-# reward_mask - if status is True, which rewards should be used
 def decompose(decomposer, batch):
     # decompose the reward
     reward_inputs, global_rewards, mask, _ = build_reward_data(decomposer, batch, include_last=False)
@@ -111,13 +82,10 @@ def build_reward_mask(decomposer, local_rewards, global_rewards, mask):
     return status, reward_mask
 
 
-def build_reward_data(decomposer, batch, include_last=True):
-    # For now, define the input for the reward decomposition network as just the observations
-    # note that some of these aren't relevant, so we additionally supply a mask for pairs that shouldn't be learnt
+def build_reward_data(decomposer, memories, reward_sample, include_last=True):
     inputs = batch["obs"][:, :, :, :]
     outputs = local_to_global(batch["reward"])
     truth = batch["reward"]
-    mask = batch["filled"].float()
 
     obs_index = decomposer.args.reward_index_in_obs
     if obs_index != -1:
@@ -127,9 +95,8 @@ def build_reward_data(decomposer, batch, include_last=True):
         inputs = inputs[:, :-1]
         outputs = outputs[:, :-1]
         truth = truth[:, :-1]
-        mask = mask[:, :-1].float()
 
-    return inputs, outputs, mask, truth
+    return inputs, outputs, truth
 
 
 # huber loss
