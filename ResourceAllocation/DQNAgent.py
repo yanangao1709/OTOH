@@ -8,7 +8,7 @@ import torch.nn as nn
 import numpy as np
 import random
 import torch.nn.functional as F
-from torch import optim
+from torch.optim import Adam
 from matplotlib import pyplot as plt
 from TOQN import TOQNHyperparameters as tohp
 from ResourceAllocation import RLHyperparameters as RLhp
@@ -58,14 +58,14 @@ class DQN():
     def __init__(self):
         self.eval_net, self.target_net = Net(), Net()
         # storage data of state, action ,reward and next state
-        self.memorys = {}
+        self.memories = {}
         for i in range(tohp.nodes_num):
-            self.memorys[i] = np.zeros((RLhp.MEMORY_CAPACITY, 42))
+            self.memories[i] = np.zeros((RLhp.MEMORY_CAPACITY, 42))
 
         self.local_rewards = []
 
         self.learn_counter = 0
-        self.optimizer = optim.Adam(self.eval_net.parameters(), RLhp.LR)
+        self.optimizer = Adam(self.eval_net.parameters(), RLhp.LR)
         self.loss = nn.MSELoss()
 
         self.reward_decomposer = RewardDecomposer()
@@ -73,8 +73,10 @@ class DQN():
 
     def store_trans(self, i, state, action, reward, next_state, memory_counter):
         index = memory_counter % RLhp.MEMORY_CAPACITY
-        trans = np.hstack((state, action, [reward], next_state))#记录一条数据
-        self.memorys[i][index,] = trans
+        trans = np.hstack((state, action, [reward], next_state))
+        i_memory = self.memories[i]
+        i_memory[index,] = trans
+        self.memories[i] = i_memory
 
     def choose_action(self, state_para):
         action = []
@@ -91,8 +93,8 @@ class DQN():
                 action.append(a)
         return action
 
-    def build_rewards(self, batch_memorys):
-        local_rewards = decompose.decompose(True, batch_memorys)
+    def build_rewards(self, batch_memory):
+        local_rewards = decompose.decompose(self.reward_decomposer, batch_memory)
         return local_rewards
 
 
@@ -105,23 +107,20 @@ class DQN():
         sample_index = np.random.choice(RLhp.MEMORY_CAPACITY, RLhp.BATCH_SIZE)
 
         # reward decomposition
-        if m == 0:
-            batch_memorys = {}
-            for i in range(tohp.nodes_num):
-                batch_memorys[i] = self.memories[i][sample_index, :]
-                self.local_rewards = self.build_rewards(batch_memorys)
-            # train the decomposer
-            reward_sample = buffer.sample(args.reward_batch_size)
-            decompose.train_decomposer(self.reward_decomposer, self.memories, reward_sample, self.reward_optimiser)
+        # if m == 0:
+        #     batch_memorys = {}
+        #     for i in range(tohp.nodes_num):
+        #         batch_memorys[i] = self.memories[i][sample_index, :]
+        #         self.local_rewards = self.build_rewards(batch_memorys)
+        #     # train the decomposer
+        #     reward_sample = buffer.sample(args.reward_batch_size)
+        #     decompose.train_decomposer(self.reward_decomposer, self.memories, reward_sample, self.reward_optimiser)
 
-        # reward decomposition
-        batch_reward = self.build_rewards(batch_memory)
-        # batch_reward = torch.FloatTensor(batch_memory[:, RLhp.NUM_STATES+1: RLhp.NUM_STATES+2])
 
-        # batch_memorys = []
+        batch_memories = []
         for i in range(tohp.nodes_num):
-            # batch_memorys.append(self.memorys[i][sample_index, :])
-            batch_memory = self.memorys[i][sample_index, :]
+            batch_memory = self.memories[i][sample_index, :]
+            batch_memories.append(batch_memory)
             batch_state = torch.FloatTensor(batch_memory[:, :RLhp.NUM_STATES])
             batch_action = torch.LongTensor(batch_memory[:, RLhp.NUM_STATES:RLhp.NUM_STATES + 1].astype(int))
             batch_next_state = torch.FloatTensor(batch_memory[:, -RLhp.NUM_STATES:])
@@ -130,6 +129,9 @@ class DQN():
                 q_eval_total.append(bs.gather(1, batch_action))
             q_eval = sum(q_eval_total) / len(q_eval_total)
             # q_eval + next_action input F_J networks
+        # reward decomposition
+        batch_reward = self.build_rewards(batch_memories)
+        # batch_reward = torch.FloatTensor(batch_memory[:, RLhp.NUM_STATES+1: RLhp.NUM_STATES+2])
 
 
 
