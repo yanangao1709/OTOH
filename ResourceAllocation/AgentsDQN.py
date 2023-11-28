@@ -107,54 +107,44 @@ class Agents:
         self.memory_counter += 1
 
     def learn(self):
+        # sample data
+        sample_index = np.random.choice(RLhp.MEMORY_CAPACITY, RLhp.BATCH_SIZE)
+        batch_memories = {}
+        for m in range(tohp.nodes_num):
+            batch_memories[m] = self.memories[m][sample_index, :]
+        # train the agent
+        self.train(batch_memories)
+        # train the decomposer
+        decompose.train_decomposer(self.reward_decomposer, batch_memories, self.reward_optimiser)
+
+    def train(self, EpisodeBatch):
         # copy parameters to target each 100 episodes
         for m in range(tohp.nodes_num):
             if self.learn_counter % RLhp.Q_NETWORK_ITERATION == 0:
                 self.target_nets[m].load_state_dict(self.eval_nets[m].state_dict())
         self.learn_counter += 1
 
-        # sample data
-        sample_index = np.random.choice(RLhp.MEMORY_CAPACITY, RLhp.BATCH_SIZE)
-        batch_memories = {}
-        for m in range(tohp.nodes_num):
-            batch_memories[m] = self.memories[m][sample_index, :]
+        batch_rewards = self.build_rewards(EpisodeBatch)
 
-        # reward decomposition
-        # batch_reward = self.build_rewards(batch_memories)
-        # batch_reward = torch.FloatTensor(batch_memory[:, RLhp.NUM_STATES+1: RLhp.NUM_STATES+2])
-
-        # reward decomposition
-        batch_rewards = self.build_rewards(batch_memories)
-        # train the decomposer
-        decompose.train_decomposer(self.reward_decomposer, batch_memories, self.reward_optimiser)
-
-        batch_memories = []
         for i in range(tohp.nodes_num):
-            batch_memory = self.memories[i][sample_index, :]
-            batch_memories.append(batch_memory)
-            batch_state = torch.FloatTensor(batch_memory[:, :RLhp.NUM_STATES])
-            batch_action = torch.LongTensor(batch_memory[:, RLhp.NUM_STATES:RLhp.NUM_STATES + 1].astype(int))
-            batch_next_state = torch.FloatTensor(batch_memory[:, -RLhp.NUM_STATES:])
+            batch_state = torch.FloatTensor(EpisodeBatch[i][:, :RLhp.NUM_STATES])
+            batch_action = torch.LongTensor(EpisodeBatch[i][:, RLhp.NUM_STATES:RLhp.NUM_STATES + 1].astype(int))
+            batch_next_state = torch.FloatTensor(EpisodeBatch[i][:, -RLhp.NUM_STATES:])
             q_eval_total = []
-            for bs in self.eval_net(batch_state):
+            for bs in self.eval_nets[i](batch_state):
                 q_eval_total.append(bs.gather(1, batch_action))
             q_eval = sum(q_eval_total) / len(q_eval_total)
-            # q_eval + next_action input F_J networks
 
+            q_next_total = []
+            for bs in self.eval_nets[i](batch_next_state):
+                q_next_total.append(bs.gather(1, batch_action))
+            q_next = sum(q_next_total) / len(q_next_total)
+            q_target = batch_rewards[:,:,i] + RLhp.GAMMA * q_next.max(1)[0].view(RLhp.BATCH_SIZE, 1)
 
-        # q_eval = self.eval_net(batch_state).gather(1, batch_action) # 得到当前Q(s,a)
-
-        q_next_total = []
-        for bs in self.eval_net(batch_next_state):
-            q_next_total.append(bs.gather(1, batch_action))
-        q_next = sum(q_next_total) / len(q_next_total)
-        # q_next = self.target_net(batch_next_state).detach() # 得到Q(s',a')，有三个值，下面选max
-        q_target = batch_reward + RLhp.GAMMA * q_next.max(1)[0].view(RLhp.BATCH_SIZE, 1)  # bellman公式：Q=R+折扣*Q‘
-
-        loss = self.loss(q_eval, q_target)  # 差异越小越好
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()  # 梯度更新
+            loss = self.losses[i](q_eval, q_target)
+            self.optimizers[i].zero_grad()
+            loss.backward(retain_graph=True)
+            self.optimizers[i].step()
 
     def build_rewards(self, batch_memories):
         local_rewards = decompose.decompose(self.reward_decomposer, batch_memories)

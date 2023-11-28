@@ -134,25 +134,26 @@ class QuantumNetwork:
         #         reward -= 10
         #
         # return self.get_states(), reward
-
+        global_reward = 0
         # 先状态迁移
         for i in range(route_num):
             for j in range(node_num):
-                if H_RKN[i][j] == 1:
+                if H_RKN[i][j] == 1 and self.node_cap[j] > 0:
                     self.node_cap[j] -= actions[j][i]
+                    global_reward += actions[j][i]
         rewards = [0 for j in range(node_num)]
         for j in range(node_num):
             rewards[j] += sum(actions[j]) * 100
             if self.node_cap[j] < 0:
-                rewards[j] -= 100
-        return self.get_states(), rewards
+                rewards[j] -= 1000
+        return self.get_states(), rewards, global_reward
 
 
     def step(self, actions, step_counter):
-        next_states, reward = self.transmit(actions)
+        next_states, reward, global_reward = self.transmit(actions)
         # 判断是否结束
         done = self.check_termination(step_counter)
-        return next_states, reward, done
+        return next_states, reward, global_reward, done
 
     def generateRequestsandRoutes(self):
         rg = rrg.RequestAndRouteGeneration()

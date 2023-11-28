@@ -20,15 +20,15 @@ import time
 
 def train_decomposer(decomposer, batch_memories, reward_optimizer):
     # organize the data
-    reward_inputs, global_rewards, _ = build_reward_data(decomposer, batch_memories)
+    reward_inputs, global_rewards, _ = build_reward_data(batch_memories)
     raw_outputs = decomposer.forward(reward_inputs)
 
-    local_rewards = decomposer.convert_raw_outputs(raw_outputs, output_type=LOCAL_REWARDS)
+    local_rewards = decomposer.convert_raw_outputs(raw_outputs)
 
     output = compute_loss(local_rewards, global_rewards)
 
     # Now add the regularizing loss
-    output += decomposer.compute_regularization(raw_outputs)
+    # output += decomposer.compute_regularization(raw_outputs)
 
     reward_optimizer.zero_grad()
     output.backward()
@@ -36,7 +36,7 @@ def train_decomposer(decomposer, batch_memories, reward_optimizer):
 
 def decompose(decomposer, batch_memories):
     # decompose the reward
-    reward_inputs, global_rewards, _ = build_reward_data(decomposer, batch_memories, include_last=False)
+    reward_inputs, global_rewards, _ = build_reward_data(batch_memories)
     raw_outputs = decomposer.forward(reward_inputs)
     agent_rewards = decomposer.convert_raw_outputs(raw_outputs)
     return agent_rewards
@@ -56,21 +56,19 @@ def build_reward_mask(decomposer, local_rewards, global_rewards, mask):
     # Visualize inverse histogram if necessary
     print(f"Decomposition Accuracy: {reward_decomposition_acc}")
     # visualize_diff(diff, mask, horiz_line=decomposer.args.reward_diff_threshold)
-
     return status, reward_mask
 
 
-def build_reward_data(decomposer, batch_memories, include_last=True):
+def build_reward_data(batch_memories):
     inputs = {}
-    outputs = {}
     truth = {}
     for m in range(tohp.nodes_num):
         inputs[m] = batch_memories[m][:, :RLhp.NUM_STATES]
-        global_reward = 0
-        for i in range(tohp.nodes_num):
-            global_reward += batch_memories[i][:, RLhp.NUM_STATES+1: RLhp.NUM_STATES+2]
-        outputs[m] = global_reward
         truth[m] = batch_memories[m][:, RLhp.NUM_STATES+1: RLhp.NUM_STATES+2]
+    global_reward = 0
+    for i in range(tohp.nodes_num):
+        global_reward += batch_memories[i][:, RLhp.NUM_STATES + 1: RLhp.NUM_STATES + 2]
+    outputs = torch.from_numpy(global_reward)
     return inputs, outputs, truth
 
 
@@ -95,21 +93,19 @@ def mae(diff):
     return th.sum(th.abs(diff)) / len(diff)
 
 
-def compute_loss(local_rewards, global_rewards, mask):
-    diff = compute_diff(local_rewards, global_rewards, mask).flatten()
+def compute_loss(local_rewards, global_rewards):
+    diff = compute_diff(local_rewards, global_rewards).flatten()
     loss = logcosh(diff)
     return loss
 
 
-def compute_diff(local_rewards, global_rewards, mask, use_mask=True):
+def compute_diff(local_rewards, global_rewards):
     # reshape local rewards
     local_rewards = th.reshape(local_rewards, shape=(*local_rewards.shape[:2], -1))
     summed_local_rewards = local_to_global(local_rewards)
     global_rewards = th.reshape(global_rewards, summed_local_rewards.shape)
 
     diff = summed_local_rewards - global_rewards
-    if use_mask:
-        diff = th.mul(diff, mask)
     return diff
 
 

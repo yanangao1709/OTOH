@@ -163,6 +163,7 @@ class RewardGroup(nn.Module):
         return reward_outputs
 
     def convert_raw_outputs(self, reward_outputs):
+        reward_outputs = th.stack(reward_outputs, dim=2)
         reward_outputs = self.local_rewards_to_agent_rewards(reward_outputs)
         return reward_outputs
 
