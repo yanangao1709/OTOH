@@ -11,18 +11,23 @@ from TOQN import TOQNHyperparameters as tohp
 from ResourceAllocation import RLHyperparameters as RLhp
 from ResourceAllocation.DQNAgent import DQN
 from QuantumEnv.QNEnv import QuantumNetwork as QN
-from ResourceAllocation.AgentsDQN import Agents
+from ResourceAllocation.AgentsDQN import AgentsDQN
+from ResourceAllocation.AgentsAC import AgentsAC
+
 from ResourceAllocation.reward_decomposition.decomposer import RewardDecomposer
 
 EPISODES = 1000
 
+import numpy as np
+import torch
 
 if __name__ == '__main__':
     opr = OptimalRS()
     ps = StoragePolicy()
 
     env = QN()
-    agents = Agents()
+    agents = AgentsAC()
+    # agents = AgentsAC()
     acc_reward = []
     axx = []
     for episode in range(EPISODES):
@@ -39,10 +44,12 @@ if __name__ == '__main__':
             env.setSelectedRoutes(selected_route)
             states = env.transformStates(states)
             # resource allocation
-            actions = agents.choose_action(states)
+            # actions = agents.choose_actionDQN(states)
+            actions, log_probs = agents.choose_actionAC(states, episode, step_counter)
             next_states, rewards, global_reward, done = env.step(actions, step_counter)
-            agents.store_trans(states, actions, rewards, next_states)
-            total_reward += sum(rewards)
+            # agents.store_trans(states, actions, rewards, next_states)
+            agents.store_trans(states, log_probs, rewards, next_states)
+            total_reward += rewards[0]
             if done:
                 break
             if agents.memory_counter >= RLhp.MEMORY_CAPACITY:

@@ -16,6 +16,8 @@ EPSILON = 0.9
 Q_NETWORK_ITERATION = 100
 BATCH_SIZE = 8
 GAMMA = 0.9
+lr_a = 3e-4
+lr_c = 5e-4
 
 # Reward decomposition variables
 decompose_reward: True

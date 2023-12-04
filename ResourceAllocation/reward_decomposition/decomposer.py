@@ -209,7 +209,7 @@ class RewardNetwork(nn.Module):
     def forward(self, inputs):
         x = F.relu(self.fc1(inputs))
         y = F.leaky_relu(self.fc2(x))
-        h = F.tanh(self.fc3(y))
+        h = F.relu(self.fc3(y))
         q = self.fc4(h)
         return q
 

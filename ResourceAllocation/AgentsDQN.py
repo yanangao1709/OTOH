@@ -15,6 +15,9 @@ from ResourceAllocation import RLHyperparameters as RLhp
 from ResourceAllocation.reward_decomposition.decomposer import RewardDecomposer
 from ResourceAllocation.reward_decomposition import decompose as decompose
 
+# device = torch.device("cpu" if torch.cuda.is_available() else "cuda")
+device = torch.device("cpu")
+
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -30,20 +33,20 @@ class Net(nn.Module):
 
         self.req_layers = {}
         for r in range(tohp.request_num):
-            r_layer = nn.Linear(32, 32)
+            r_layer = nn.Linear(32, 32).to(device)
             r_layer.weight.data.normal_(0, 0.1)
-            r_candroute_layer = nn.Linear(32, RLhp.NUM_ACTIONS)
+            r_candroute_layer = nn.Linear(32, RLhp.NUM_ACTIONS).to(device)
             r_candroute_layer.weight.data.normal_(0, 0.1)
             self.req_layers[r] = [r_layer, r_candroute_layer]
 
     def forward(self, x):
-        x = F.relu(self.input_layer(x))
-        x = F.relu(self.hidden_layer1(x))
-        x = F.relu(self.hidden_layer2(x))
+        x = F.relu(self.input_layer(x)).to(device)
+        x = F.relu(self.hidden_layer1(x)).to(device)
+        x = F.relu(self.hidden_layer2(x)).to(device)
         v = []
         for r in range(tohp.request_num):
-            x = F.relu(self.req_layers[r][0](x))
-            v.append(F.relu(self.req_layers[r][1](x)))
+            x = F.relu(self.req_layers[r][0](x).to(device))
+            v.append(F.relu(self.req_layers[r][1](x).to(device)))
         return tuple(v)
 
     def set_seed(self, seed):
@@ -53,7 +56,7 @@ class Net(nn.Module):
         random.seed(seed)
         torch.backends.cudnn.deterministic = True
 
-class Agents:
+class AgentsDQN:
     def __init__(self):
         self.memory_counter = 0
         self.fig, self.ax = plt.subplots()
@@ -62,8 +65,8 @@ class Agents:
         self.eval_nets = {}
         self.target_nets = {}
         for i in range(tohp.nodes_num):
-            self.eval_nets[i] = Net()
-            self.target_nets[i] = Net()
+            self.eval_nets[i] = Net().to(device)
+            self.target_nets[i] = Net().to(device)
         # storage data of state, action ,reward and next state
         self.memories = {}
         for i in range(tohp.nodes_num):
@@ -74,16 +77,16 @@ class Agents:
         self.losses = {}
         for i in range(tohp.nodes_num):
             self.optimizers[i] = Adam(self.eval_nets[i].parameters(), RLhp.LR)
-            self.losses[i] = nn.MSELoss()
+            self.losses[i] = nn.MSELoss().to(device)
 
         self.reward_decomposer = RewardDecomposer()
         self.reward_optimiser = Adam(self.reward_decomposer.parameters(), lr=0.01)
 
-    def choose_action(self, states):
+    def choose_actionDQN(self, states):
         actions = {}
         for m in range(tohp.nodes_num):
             # notation that the function return the action's index nor the real action
-            state = torch.unsqueeze(torch.FloatTensor(states[m]), 0)
+            state = torch.unsqueeze(torch.FloatTensor(states[m]), 0).to(device)
             action = []
             if np.random.randn() <= RLhp.EPSILON:
                 action_value = self.eval_nets[m].forward(state)
@@ -124,24 +127,23 @@ class Agents:
                 self.target_nets[m].load_state_dict(self.eval_nets[m].state_dict())
         self.learn_counter += 1
 
-        batch_rewards = self.build_rewards(EpisodeBatch)
+        batch_rewards = self.build_rewards(EpisodeBatch).to(device)
 
         for i in range(tohp.nodes_num):
-            batch_state = torch.FloatTensor(EpisodeBatch[i][:, :RLhp.NUM_STATES])
-            batch_action = torch.LongTensor(EpisodeBatch[i][:, RLhp.NUM_STATES:RLhp.NUM_STATES + 1].astype(int))
-            batch_next_state = torch.FloatTensor(EpisodeBatch[i][:, -RLhp.NUM_STATES:])
-            q_eval_total = []
-            for bs in self.eval_nets[i](batch_state):
-                q_eval_total.append(bs.gather(1, batch_action))
-            q_eval = sum(q_eval_total) / len(q_eval_total)
+            batch_state = torch.FloatTensor(EpisodeBatch[i][:, :RLhp.NUM_STATES]).to(device)
+            batch_action = torch.LongTensor(EpisodeBatch[i][:, RLhp.NUM_STATES:RLhp.NUM_STATES + tohp.request_num].astype(int)).to(device)
+            batch_next_state = torch.FloatTensor(EpisodeBatch[i][:, -RLhp.NUM_STATES:]).to(device)
+            # batch_rewards = torch.FloatTensor(EpisodeBatch[i][:,RLhp.NUM_STATES + tohp.request_num:RLhp.NUM_STATES + tohp.request_num+1])
 
-            q_next_total = []
-            for bs in self.eval_nets[i](batch_next_state):
-                q_next_total.append(bs.gather(1, batch_action))
-            q_next = sum(q_next_total) / len(q_next_total)
-            q_target = batch_rewards[:,:,i] + RLhp.GAMMA * q_next.max(1)[0].view(RLhp.BATCH_SIZE, 1)
+            q_eval = torch.reshape(torch.stack(self.eval_nets[i](batch_state)), [RLhp.BATCH_SIZE, tohp.request_num, RLhp.NUM_ACTIONS]).gather(2, torch.reshape(batch_action, [RLhp.BATCH_SIZE,tohp.request_num,1]))
+            q_next = torch.reshape(torch.stack(self.target_nets[i](batch_next_state)), [RLhp.BATCH_SIZE, tohp.request_num, RLhp.NUM_ACTIONS]).to(device)
+            q_next_max = torch.reshape(torch.max(q_next, 2).values, [RLhp.BATCH_SIZE, tohp.request_num, 1])
+            q_target = q_next_max.clone().to(device)
+            for r in range(tohp.request_num):
+                q_target[:,r,:] = batch_rewards[:,:,i] + RLhp.GAMMA * q_next_max[:,r,:]
+                # q_target[:,r,:] = batch_rewards + RLhp.GAMMA * q_next_max[:,r, :]
 
-            loss = self.losses[i](q_eval, q_target)
+            loss = self.losses[i](q_eval, q_target).to(device)
             self.optimizers[i].zero_grad()
             loss.backward(retain_graph=True)
             self.optimizers[i].step()

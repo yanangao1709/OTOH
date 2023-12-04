@@ -11,9 +11,16 @@ import matplotlib.pyplot as plt
 from ResourceAllocation import RLHyperparameters as RLhp
 from ResourceAllocation.reward_decomposition.decomposer import RewardDecomposer
 from ResourceAllocation.reward_decomposition import decompose as decompose
+from torch.distributions import Categorical
+
+# device = torch.device("cpu" if torch.cuda.is_available() else "cuda")
+device = torch.device("cpu")
+
+from collections import deque, namedtuple
+Transition = namedtuple('Transition', ('state', 'action', 'reward', 'policy'))
 
 
-def set_seed(self, seed):
+def set_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     np.random.seed(seed)
@@ -42,15 +49,15 @@ class Actor(nn.Module):
             self.req_layers[r] = [r_layer, r_candroute_layer]
 
     def forward(self, x):
-        if isinstance(s, np.ndarray):
-            s = torch.FloatTensor(s)
+        if isinstance(x, np.ndarray):
+            x = torch.FloatTensor(x)
         x = F.relu(self.input_layer(x))
         x = F.relu(self.hidden_layer1(x))
-        x = F.relu(self.hidden_layer2(x))
+        x_share = F.relu(self.hidden_layer2(x))
         v = []
         for r in range(tohp.request_num):
-            x = F.relu(self.req_layers[r][0](x))
-            v.append(F.relu(self.req_layers[r][1](x)))
+            x_self = F.relu(self.req_layers[r][0](x_share))
+            v.append(torch.sigmoid(self.req_layers[r][1](x_self)))
         return tuple(v)
 
 
@@ -70,54 +77,144 @@ class Critic(nn.Module):
         self.output_layer = nn.Linear(32, 1)
         self.output_layer.weight.data.normal_(0, 0.1)
 
-    def forward(self, s):
-        if isinstance(s, np.ndarray):
-            s = torch.FloatTensor(s)
-        x = F.relu(self.input_layer(x))
+    def forward(self, x):
+        if isinstance(x, np.ndarray):
+            x = torch.FloatTensor(x)
+        x = F.relu(self.input_layer(x)).detach()
         x = F.relu(self.hidden_layer1(x))
         x = F.relu(self.hidden_layer2(x))
-        x = self.ln(F.relu(self.fc1(x)))
+        x = F.relu(self.output_layer(x))
         return x
 
+class AgentsAC:
+    def __init__(self):
+        self.action_dim = RLhp.NUM_ACTIONS
+        self.state_dim = RLhp.NUM_STATES
+        self.memory_counter = 0
+        self.learn_counter = 0
+        self.fig, self.ax = plt.subplots()
+        self.reward_decomposer = None
 
-class AgentsACs:
-    def __init__(self, env):
-        self.gamma = 0.99
-        self.lr_a = 3e-4
-        self.lr_c = 5e-4
+        self.actors = {}
+        self.critics = {}
+        self.actor_optims = {}
+        self.critic_optims = {}
+        self.losses = {}
+        for i in range(tohp.nodes_num):
+            self.actors[i] = Actor(self.action_dim, self.state_dim).to(device)
+            self.critics[i] = Critic(self.state_dim).to(device)
+            self.actor_optims[i] = torch.optim.Adam(self.actors[i].parameters(), lr=RLhp.lr_a)
+            self.critic_optims[i] = torch.optim.Adam(self.critics[i].parameters(), lr=RLhp.lr_c)
+            self.losses[i] = nn.MSELoss().to(device)
 
-        self.env = env
-        self.action_dim = self.env.action_space.n             #获取描述行动的数据维度
-        self.state_dim = self.env.observation_space.shape[0]  #获取描述环境的数据维度
+        # storage data of state, action ,reward and next state
+        self.memories = {}
+        for i in range(tohp.nodes_num):
+            self.memories[i] = deque(maxlen=RLhp.MEMORY_CAPACITY)
 
-        self.actor = Actor(self.action_dim, self.state_dim)   #创建演员网络
-        self.critic = Critic(self.state_dim)                  #创建评论家网络
+        self.reward_decomposer = RewardDecomposer()
+        self.reward_optimiser = Adam(self.reward_decomposer.parameters(), lr=0.01)
 
-        self.actor_optim = torch.optim.Adam(self.actor.parameters(), lr=self.lr_a)
-        self.critic_optim = torch.optim.Adam(self.critic.parameters(), lr=self.lr_c)
+    def choose_actionAC(self, states, episode, step_counter):
+        actions = {}
+        log_probs = {}
+        for m in range(tohp.nodes_num):
+            state = torch.unsqueeze(torch.FloatTensor(states[m]), 0).to(device)
+            actions[m] = []
+            action_value = self.actors[m].forward(state)
+            log_probs[m] = []
+            for i in range(len(action_value)):
+                av = action_value[i]
+                dist = Categorical(av)
+                a = dist.sample()
+                temp = dist.log_prob(a)
+                log_probs[m].append(dist.log_prob(a))
+                actions[m].append(a.item())
+        return actions, log_probs
 
-        self.loss = nn.MSELoss()
+    def store_trans(self, states, log_probs, rewards, next_states):
+        if self.memory_counter % 500 == 0:
+            print("The experience pool collects {} time experience".format(self.memory_counter))
+        for m in range(tohp.nodes_num):
+            index = self.memory_counter % RLhp.MEMORY_CAPACITY
+            if len(self.memories[m]) == RLhp.MEMORY_CAPACITY:
+                self.memories[m][index] = Transition(states[m], log_probs[m], rewards[m], next_states[m])
+            else:
+                self.memories[m].append(Transition(states[m], log_probs[m], rewards[m], next_states[m]))
+            # self.log_prob_memory[m][index,] = log_probs[m]
+        self.memory_counter += 1
 
-    def get_action(self, s):
-        a = self.actor(s)
-        dist = Categorical(a)
-        action = dist.sample()             #可采取的action
-        log_prob = dist.log_prob(action)   #每种action的概率
+    def learn(self):
+        # sample data
+        batch_memories = {}
+        batch_log_probs = {}
+        for m in range(tohp.nodes_num):
+            sample_index = np.random.choice(RLhp.MEMORY_CAPACITY, RLhp.BATCH_SIZE)
+            batch_memories[m] = np.zeros((RLhp.BATCH_SIZE,4), dtype=object)
+            for i in range(len(sample_index)):
+                batch_memories[m][i,:]= self.memories[m][sample_index[i]]
+        # train the agent
+        self.train(batch_memories)
+        # train the decomposer
+        decompose.train_decomposer(self.reward_decomposer, batch_memories, self.reward_optimiser)
 
-        return action.detach().numpy(), log_prob
+    def train(self, EpisodeBatch):
+        self.learn_counter += 1
+        batch_rewards = self.build_rewards(EpisodeBatch).to(device)
 
-    def learn(self, log_prob, s, s_, rew):
-        #使用Critic网络估计状态值
-        v = self.critic(s)
-        v_ = self.critic(s_)
+        for i in range(tohp.nodes_num):
+            batch_state = np.zeros((RLhp.BATCH_SIZE, RLhp.NUM_STATES))
+            for j in range(RLhp.BATCH_SIZE):
+                batch_state[j,:] = EpisodeBatch[i][:,0][j]
+            batch_state_ts = torch.FloatTensor(batch_state).to(device)
 
-        critic_loss = self.loss(self.gamma * v_ + rew, v)
-        self.critic_optim.zero_grad()
-        critic_loss.backward()
-        self.critic_optim.step()
+            batch_next_state = np.zeros((RLhp.BATCH_SIZE, RLhp.NUM_STATES))
+            for j in range(RLhp.BATCH_SIZE):
+                batch_next_state[j, :] = EpisodeBatch[i][:, 3][j]
+            batch_next_state_ts = torch.FloatTensor(batch_next_state).to(device)
+            v = self.critics[i](batch_state_ts)
+            v_ = self.critics[i](batch_next_state_ts)
 
-        td = self.gamma * v_ + rew - v          #计算TD误差
-        loss_actor = -log_prob * td.detach()
-        self.actor_optim.zero_grad()
-        loss_actor.backward()
-        self.actor_optim.step()
+            critic_loss = self.losses[i](RLhp.GAMMA * v_ + batch_rewards[:,:,i], v)
+            self.critic_optims[i].zero_grad()
+            critic_loss.backward(retain_graph=True)
+            self.critic_optims[i].step()
+
+            batch_log_prob = EpisodeBatch[i][:, 1]
+            td = RLhp.GAMMA * v_ + batch_rewards[:,:,i] - v  # 计算TD误差
+            self.actor_optims[i].zero_grad()
+
+            tensor_list = []
+            for b in range(RLhp.BATCH_SIZE):
+                batch_log_prob_total = 0
+                for j in range(tohp.request_num):
+                    batch_log_prob_total += batch_log_prob[b][j]
+                tensor_list.append(batch_log_prob_total.unsqueeze(1))
+            batch_log_prob_list = torch.cat(tensor_list, dim=0)
+
+            loss_actor = (-batch_log_prob_list.clone() * td.detach()).sum()
+            with torch.autograd.set_detect_anomaly(True):
+                loss_actor.backward(retain_graph=True)
+            self.actor_optims[i].step()
+
+    def build_rewards(self, batch_memories):
+        local_rewards = decompose.decompose(self.reward_decomposer, batch_memories)
+        return local_rewards
+
+    def get_PApolicy(self, actions):
+        photonAllocated = []
+        for r in range(tohp.request_num):
+            pa_m = []
+            for m in range(tohp.nodes_num):
+                pa_m.append(actions[m][r]+1)
+            photonAllocated.append(pa_m)
+        return photonAllocated
+
+    def plot(self, ax, x):
+        ax.cla()
+        ax.set_xlabel("episode")
+        ax.set_ylabel("accumulated reward")
+        ax.plot(x, 'b-')
+        plt.pause(0.00001)
+        if ax == 500:
+            plt.show()

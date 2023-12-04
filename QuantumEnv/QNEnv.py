@@ -134,18 +134,21 @@ class QuantumNetwork:
         #         reward -= 10
         #
         # return self.get_states(), reward
+
         global_reward = 0
         # 先状态迁移
-        for i in range(route_num):
-            for j in range(node_num):
-                if H_RKN[i][j] == 1 and self.node_cap[j] > 0:
+        for j in range(node_num):
+            for i in range(route_num):
+                # if H_RKN[i][j] == 1 and self.node_cap[j] > 0:
+                if H_RKN[i][j] == 1:
                     self.node_cap[j] -= actions[j][i]
                     global_reward += actions[j][i]
+
         rewards = [0 for j in range(node_num)]
         for j in range(node_num):
-            rewards[j] += sum(actions[j]) * 100
+            rewards[j] = sum(actions[j]) * 100
             if self.node_cap[j] < 0:
-                rewards[j] -= 1000
+                rewards[j] -= 100 * abs(self.node_cap[j])
         return self.get_states(), rewards, global_reward
 
 
