@@ -1,10 +1,10 @@
 # OTOH: Online Transmission Optimization via High-Dimensional Entanglement
-====
+
 Yanan Gao, Song Yang, Fan Li, Liehuang Zhu, Stojan Trajanovski, Xiaoming Fu
 
 This is the official implementation of our paper that is submitted to the journal of IEEE/ACM Transactions on Networking.
 
-## Installation
+## Installation and Run
 (1) Install Gurobipy according to [link](https://pypi.org/project/gurobipy/). It is free for a student or staff member of an academic institution.
 
 (2) Python versions more than 3.5 are feasible for the project.
@@ -14,6 +14,8 @@ This is the official implementation of our paper that is submitted to the journa
 cd OTOH/
 pip install -r requirements.txt
 ```
+
+(4) The way to return the code is by running OTOH/main.py.
 
 ## Topology:
 
@@ -26,14 +28,14 @@ pip install -r requirements.txt
 ## Configuring parameters:
 Our method is dependent on hyper-parameters that can be found under OTOH/config/. There are 3 different types of configuration files:
 
-* **Default Configuration** - found under `src/config/default.yaml`. This file depicts the default parameters
-for all runs. Is overridden by any other configuration file. An example of a parameter here could be
+* **Default Configuration** - found under `OTOH/config/default.yaml`. This file depicts the default parameters
+for all runs. It is overridden by any other configuration file. An example of a parameter here could be
   `batch_size`, which is generally similar for all algorithms. 
 
-* **Enviroment Configuration** - found under `src/config/envs/<env-name>.yaml`. This file depicts the parameters
+* **Enviroment Configuration** - found under `OTOH/config/envs/<env-name>.yaml`. This file depicts the parameters
 that are relevant for running the environment. An example of this is `num_agents`. 
   
-* **Algorithm Configuration** - found under `src/config/algs/<alg-name>.yaml`. This file depicts the parameters
+* **Algorithm Configuration** - found under `OTOH/config/algs/<alg-name>.yaml`. This file depicts the parameters
 for the current algorithm. An example of this is `learning_rate`.
 
 ## Code Roadmap
