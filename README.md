@@ -8,9 +8,12 @@ Installation
 ------
 (1) Install Gurobipy according to [link](https://pypi.org/project/gurobipy/). It is free for a student or staff member of an academic institution.
 
-(2) Python versions more than 3.5 are ok for the project.
+(2) Python versions more than 3.5 are feasible for the project.
 
-(3) Download the project, and then run the ``main.py'', OTOH can return the optimization results by plotting a figure.
+(3) Installation of the relevant Python packages can be done by running
+
+cd OTOH/
+pip install -r requirements.txt
 
 Topology:
 ------
