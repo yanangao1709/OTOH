@@ -3,10 +3,9 @@
 #       Date: 13-06-2023                                      #
 #      Goals: topology data for TOQN                          #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-from TOQN import TOQNHyperparameters as tohp
 
 # 5 requests
-requestsSet = [[1,11], [2,13], [3,14], [2,9], [7,18]]
+REQUESTSET = [[1,11], [2,13], [3,14], [2,9], [7,18]]
 # the volumn of each request
 D_VOLUMN = [10, 10, 10, 10, 10]
 # 3 routes of each request
@@ -92,5 +91,9 @@ HOPS = [
     [4,4,5]
 ]
 # node capacity
-NODE_CPA = [5,5,5,5,5,6,6,6,6,6,7,7,7,7,7,8,8,8]
-
+# NODE_CPA = [20,30,30,40,60,40,20,50,10,30,70,30,20,40,20,40,10,20]
+# NODE_CPA = [8,20,16,18,6,5,20,15,10,12,8,10,6,22,14,9,12,16]
+# NODE_CPA = [10,22,18,20,8,7,22,17,12,14,10,12,8,24,16,11,14,18]
+NODE_CPA = [12, 24, 20, 22, 10, 9, 24, 19, 14, 16, 12, 14, 10, 26, 18, 13, 16, 20]
+mean = sum(NODE_CPA)/len(NODE_CPA)
+print(mean)

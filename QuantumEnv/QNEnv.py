@@ -6,60 +6,50 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 from QuantumEnv import RequestAndRouteGeneration as rrg
 from TOQN import TOQNHyperparameters as tohp
-from Topology import TOQNTopology as toTop
-from Common.Throughput import Thr
-
-H_RKN = [
-    [1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-    [0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
-    [0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
-]
-route_num = 5
-node_num = 18
-HOPS = [4,4,4,4,5]
-
+from ResourceAllocation import RLHyperparameters as RLhp
+from Topology.TOQNTopology import ROUTES, REQUESTSET, HOPS, NODE_CPA
+from Constraint.Throughput import Thr
+import numpy as np
+import torch as th
+from ResourceAllocation.components.locality_graph import DependencyGraph
+import networkx as nx
+import pandas as pd
 
 class QuantumNetwork:
     def __init__(self):
         self.requests = None
-        self.selectedRoutes = None
         self.agent_local_env = []
         self.node_cap = None
-        self.H_RKN = []   # r 请求的 k路径 有没有经过这个点
+        self.H_RKN = np.zeros((tohp.request_num, tohp.nodes_num))
 
-        self.num_steps = 5
+        self.episode_limit = RLhp.EPISODE_LIMIT
+        self.episode_steps = 0
+        self.request_num = tohp.request_num
+        self.obs_size = 6   # 6 9 7 5
+        self.state_size = 18
+        self.episode_steps = 0
+        self.reward_shape = tohp.nodes_num
+        self.n_actions = RLhp.NUM_ACTIONS
+        self.n_agents = tohp.nodes_num
+
+        self.graph_obj = self.build_graph()
 
     def obtain_requests(self):
         rg = rrg.RequestAndRouteGeneration()
         requests = rg.request_routes_generation()
         return requests
 
-    def obtain_H_RKN(self):
-        for r in range(tohp.request_num):
-            k_pos = []
-            for k in range(tohp.candidate_route_num):
-                pos = []
-                for m in range(tohp.nodes_num):
-                    route = self.requests[r].getCandidateRoutes()
-                    if m+1 in route[k]:
-                        pos.append(1)
-                    else:
-                        pos.append(0)
-                k_pos.append(pos)
-            self.H_RKN.append(k_pos)
-
     def get_H_RKN(self):
         return self.H_RKN
 
     def reset(self):
+        self.episode_steps = 0
         if self.requests:
             self.requests.clear()
         # self.requests = self.obtain_requests()
-        self.requests = [[1,11], [2,13], [3,14], [2,9], [7,18]]
+        self.requests = REQUESTSET
         # self.obtain_H_RKN()
-        self.node_cap = [2,3,3,4,6,4,2,5,1,3,7,3,2,4,2,4,1,2]
+        self.node_cap = NODE_CPA
         # random photon allocation
         photonallocated = [
             [2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2],
@@ -68,95 +58,87 @@ class QuantumNetwork:
             [2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
             [2, 2, 2, 3, 2, 2, 2, 2, 2, 5, 2, 2, 2, 2, 2, 2, 0, 2]
         ]
-        states = None
-        return states, photonallocated
+        # photonallocated2 = [
+        #     [2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2],
+        #     [2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+        #     [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2],
+        #     [2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+        #     [2, 2, 2, 3, 2, 2, 2, 2, 2, 5, 2, 2, 2, 2, 2, 2, 0, 2],
+        #     [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2],
+        #     [2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+        #     [2, 2, 2, 3, 2, 2, 2, 2, 2, 5, 2, 2, 2, 2, 2, 2, 0, 2]
+        # ]
+        # photonallocated2 = [
+        #     [2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2],
+        #     [2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+        #     [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2],
+        #     [2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+        # ]
+        selected_route = [[0, 0, 1], [1, 0, 0], [0, 0, 1], [0, 0, 1], [0, 0, 1]]
+        # selected_route2 = [[0, 0, 1], [1, 0, 0], [0, 0, 1], [0, 0, 1], [0, 0, 1], [1, 0, 0], [0, 0, 1], [0, 0, 1]]
+        # selected_route2 = [[0, 0, 1], [1, 0, 0], [0, 0, 1], [0, 0, 1]]
+        return photonallocated, selected_route
+
+    def get_state(self):
+        # 节点内存信息 size = 18
+        return np.array(self.node_cap)
+
+    def get_avail_actions(self):
+        avail_actions = []
+        for i in range(tohp.nodes_num):
+            actions = np.ones((tohp.request_num, RLhp.NUM_ACTIONS))
+            avail_actions.append(actions)
+        return avail_actions
+
+    def get_obs(self):
+        ob = np.zeros([tohp.nodes_num, self.obs_size])
+        for i in range(tohp.nodes_num):
+            obs = []
+            for j in range(tohp.request_num):
+                obs.append(self.H_RKN[j][i])
+                # 固定路径时，用local节点的内存
+                # obs.append(self.node_cap[i])
+            obs.append(self.node_cap[i])
+            ob[i, :] = obs
+        return ob
 
     def setSelectedRoutes(self, selectedroutes):
-        self.selectedRoutes = selectedroutes
+        for r in range(tohp.request_num):
+            route = ROUTES[r][selectedroutes[r].index(1)]
+            for m in range(tohp.nodes_num):
+                if m+1 in route:
+                    self.H_RKN[r][m] = 1
 
-    def transformStates(self, states):
-        return self.get_states()
+    def compute_all_rewards(self, actions):
+        rewards = np.zeros((tohp.nodes_num,))
+        for i in range(tohp.nodes_num):
+            rewards[i,] += sum(actions[i])
+            if self.node_cap[i] < 0:
+                rewards[i,] -= 1
+        return rewards
 
-    def get_states(self):
-        # states = {}
-        # for m in range(tohp.nodes_num):
-        #     state = []
-        #     for r in range(tohp.request_num):
-        #         state.append(self.requests[r].getSource())
-        #         state.append(self.requests[r].getDestination())
-        #         state.append(self.requests[r].getVolumn())
-        #         r_canRoutes = self.requests[r].getCandidateRoutes()
-        #         if m + 1 in r_canRoutes[self.selectedRoutes[r].index(1)]:
-        #             state.append(1)
-        #         else:
-        #             state.append(0)
-        #     for v in range(tohp.nodes_num):
-        #         if toTop.LINK_LENS[m][v]:
-        #             state.append(1)
-        #         else:
-        #             state.append(0)
-        #     state.append(self.node_cap[m])
-        #     states[m] = state
-        # return states
+    def step(self, actions):
+        if th.is_tensor(actions):
+            actions = actions.cpu().detach().numpy().tolist()
+        else:
+            actions = actions.tolist()
+        self.episode_steps += 1
+        # we now need to compute the global reward
+        rewards = self.compute_all_rewards(actions)
 
-        states = {}
-        for m in range(node_num):
-            state = []
-            # for r in range(route_num):
-            #     state.append(self.requests[r][0])
-            #     state.append(self.requests[r][1])
-            for v in range(node_num):
-                state.append(self.node_cap[v])
-            states[m] = state
-        return states
+        # set action for each agent
+        for agent in range(tohp.nodes_num):
+            self._set_action(actions[agent], agent)
 
-    def calculate_reward(self, actions):
-        reward = 0
-        for i in range(route_num):
-            totalPho = 0
-            for j in range(node_num):
-                totalPho += H_RKN[i][j] * actions[j][i]
-            r_thr = totalPho/HOPS[i]
-            reward += r_thr
-        return reward
+        # check if times up, and return done
+        done = self.episode_steps >= self.episode_limit
 
-    def transmit(self, actions):
-        # reward = self.calculate_reward(actions) * 100
-        # reward = sum(actions) * 100
-        # # 先状态迁移
-        # for i in range(route_num):
-        #     for j in range(node_num):
-        #         if H_RKN[i][j] == 1:
-        #             self.node_cap[j] -= actions[j][i]
-        # # 判断约束
-        # for j in range(node_num):
-        #     if self.node_cap[j] < 0:
-        #         reward -= 10
-        #
-        # return self.get_states(), reward
+        # next_states, reward, global_reward = self.transmit(actions)
 
-        global_reward = 0
-        # 先状态迁移
-        for j in range(node_num):
-            for i in range(route_num):
-                # if H_RKN[i][j] == 1 and self.node_cap[j] > 0:
-                if H_RKN[i][j] == 1:
-                    self.node_cap[j] -= actions[j][i]
-                    global_reward += actions[j][i]
+        return rewards, done, {}
 
-        rewards = [0 for j in range(node_num)]
-        for j in range(node_num):
-            rewards[j] = sum(actions[j]) * 100
-            if self.node_cap[j] < 0:
-                rewards[j] -= 100 * abs(self.node_cap[j])
-        return self.get_states(), rewards, global_reward
-
-
-    def step(self, actions, step_counter):
-        next_states, reward, global_reward = self.transmit(actions)
-        # 判断是否结束
-        done = self.check_termination(step_counter)
-        return next_states, reward, global_reward, done
+    def _set_action(self, actions, agent):
+        self.node_cap[agent] -= sum(actions)
 
     def generateRequestsandRoutes(self):
         rg = rrg.RequestAndRouteGeneration()
@@ -166,16 +148,38 @@ class QuantumNetwork:
         state_probs = self.multi_qubit_entgle.redefine_assign_qstate_of_multiqubits(i, i_cp, j, j_cp)
         return state_probs
 
-    def check_termination(self, step_counter):
-        if step_counter > self.num_steps:
-            return True
-        else:
-            return False
+    def build_auto_graph(self):
+        graph = nx.Graph()
+        data = pd.read_csv(tohp.topology_data_path)
+
+        # add all the agents (necessary for the empty case)
+        for i in range(self.n_agents):
+            graph.add_node(i)
+
+        node1 = data["node1"].values.tolist()
+        node2 = data["node2"].values.tolist()
+        length = data["length"].values.tolist()
+        for i in range(len(node1)):
+            graph.add_edge(node1[i]-1, node2[i]-1, length=length[i])
+
+        return graph
 
 
+    def build_graph(self):
+        graph = self.build_auto_graph()
+        return DependencyGraph(num_agents=self.n_agents, graph=graph)
 
+    def get_graph_obj(self):
+        return self.graph_obj
 
-
-
-
-
+    def get_env_info(self):
+        env_info = {"state_shape": self.state_size,
+                    "obs_shape": self.obs_size,
+                    "reward_shape": self.reward_shape,
+                    "n_actions": self.n_actions,
+                    "n_agents": self.n_agents,
+                    "request_num": self.request_num,
+                    "episode_limit": self.episode_limit,
+                    "graph_obj": self.get_graph_obj(),
+                    }
+        return env_info

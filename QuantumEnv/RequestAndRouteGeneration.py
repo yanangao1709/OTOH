@@ -55,12 +55,32 @@ class RequestAndRouteGeneration:
             requests.append(r)
         return requests
 
+    def route_generation(self, r):
+        nodes_num = tohp.nodes_num
+        nodes = [i + 1 for i in range(nodes_num)]
+        data = pd.read_csv(tohp.topology_data_path)
+        G = nx.Graph()
+        for node in nodes:
+            G.add_node(node)
+        node1 = data["node1"].values.tolist()
+        node2 = data["node2"].values.tolist()
+        length = data["length"].values.tolist()
+        for i in range(len(node1)):
+            G.add_edge(node1[i], node2[i], length=length[i])
+
+        candidate_routes = []
+        paths = nx.shortest_simple_paths(G, r[0], r[1])
+        for c, p in enumerate(paths):
+            if c == tohp.candidate_route_num:
+                break
+            candidate_routes.append(p)
+        return candidate_routes
 
 # just for test
 # if __name__ == '__main__':
 #     r_r_g = RequestAndRouteGeneration()
-#     requests = r_r_g.request_generation()
-#     candidate_routes = r_r_g.route_generation(requests)
+#     candidate_routes = r_r_g.route_generation([4,11])
+#     print(candidate_routes)
 
 
 

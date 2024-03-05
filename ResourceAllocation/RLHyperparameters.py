@@ -8,16 +8,18 @@
 EPISODES = 1000
 MEMORY_CAPACITY = 200
 X_thr = 2
-NUM_STATES = 18
+NUM_STATES = 39  # 39 51 43 35
 NUM_ACTIONS = X_thr + 1
-LR = 0.005
+LR = 0.01
 EPSILON = 0.9
+EPISODE_LIMIT = 10
 
 Q_NETWORK_ITERATION = 100
 BATCH_SIZE = 8
 GAMMA = 0.9
 lr_a = 3e-4
 lr_c = 5e-4
+
 
 # Reward decomposition variables
 decompose_reward: True
@@ -29,3 +31,4 @@ assume_binary_reward: False
 reward_acc: 0.999
 regularizing_weight: 0.00005
 reward_index_in_obs: -1
+decom_lr = 0.1

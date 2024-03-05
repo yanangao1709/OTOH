@@ -9,6 +9,7 @@ from gurobipy import *
 from TOQN import TOQNHyperparameters as tohp
 from Topology.TOQNTopology import H_RKN, HOPS, ROUTE_LEN, NODE_CPA
 from RouteSelection.Constraints import Constraints
+from Constraint.PolicyStorage import StoragePolicy
 
 # one time slot one route selection
 # with known photon allocation policy M_m^{r,t}
@@ -18,14 +19,19 @@ class OptimalRS:
         self.request_num = tohp.request_num
         self.candidate_route_num = tohp.candidate_route_num
         self.node_num = tohp.nodes_num
-        self.T_thr = tohp.T_thr
         self.acc_throughput = 0
         self.Y = None
         self.M = None
         self.Flag = True
 
+        # hyper parameters
+        self.delay_thr = 0
+
     def set_photon_allocation(self, M):
         self.M = M
+
+    def set_delay_thr(self, delay_thr):
+        self.delay_thr = delay_thr
 
     def addVar(self, m):
         y_vars = m.addVars(self.request_num * self.candidate_route_num, vtype=GRB.CONTINUOUS)
@@ -72,6 +78,7 @@ class OptimalRS:
         try:
             # define problem
             m = Model("LinearProblem")
+            m.setParam("OutputFlag", 0)
             # define variables
             Y_vars = self.addVar(m)
 
@@ -85,30 +92,30 @@ class OptimalRS:
             m.setObjective(obj, GRB.MAXIMIZE)
             # define constraints
             # fidelity
-            m.addConstrs(
-                quicksum(
-                    Y_vars[r][k] * cons.obatin_fidelity(r, k, self.M, t)
-                         for k in range(self.candidate_route_num)
-                         ) >= tohp.F_thr
-                for r in range(self.request_num)
-            )
+            # m.addConstrs(
+            #     quicksum(
+            #         Y_vars[r][k] * cons.obatin_fidelity(r, k, self.M, t)
+            #              for k in range(self.candidate_route_num)
+            #              ) >= tohp.F_thr
+            #     for r in range(self.request_num)
+            # )
             # delay
             m.addConstrs(
                 quicksum(
-                    Y_vars[r][k] * ROUTE_LEN[r][k] + cons.obtain_delay(r, t)
+                    Y_vars[r][k] * ROUTE_LEN[r][k] + Y_vars[r][k] * cons.obtain_his_delay(r, t)
                     for k in range(self.candidate_route_num)
-                ) <= tohp.D_thr
+                ) <= self.delay_thr
                 for r in range(self.request_num)
             )
             # node_capacity
-            m.addConstrs(
-                quicksum(
-                    Y_vars[r][k] * H_RKN[r][k][m] * self.M[r][m] + cons.obtain_node_cap(m)
-                    for r in range(self.request_num)
-                    for k in range(self.candidate_route_num)
-                ) <= NODE_CPA[m]
-                for m in range(self.node_num)
-            )
+            # m.addConstrs(
+            #     quicksum(
+            #         Y_vars[r][k] * H_RKN[r][k][m] * self.M[r][m] + cons.obtainq_node_cap(m)
+            #         for r in range(self.request_num)
+            #         for k in range(self.candidate_route_num)
+            #     ) <= NODE_CPA[m]
+            #     for m in range(self.node_num)
+            # )
             # route selection
             m.addConstrs(
                 quicksum(Y_vars[r][k]
@@ -124,25 +131,25 @@ class OptimalRS:
             )
             # m.write("RouteSelection-Linear.lp")
             m.optimize()
-            print('Optimal solution', end=" ")
+            # print('Optimal solution', end=" ")
             sol =  []
             for i in m.getVars():
                 sol.append(i.x)
-                print('%s = %g' % (i.varName, i.x), end=" ")
+                # print('%s = %g' % (i.varName, i.x), end=" ")
             self.Y = self.transformY(sol)
         except GurobiError as e:
             self.Flag = False
-            print('Error code' + str(e.errno) + ":" + str(e))
+            # print('Error code' + str(e.errno) + ":" + str(e))
         except AttributeError:
             self.Flag = False
-            print('Encountered an attribute error')
+            # print('Encountered an attribute error')
 
     def get_route_from_CRR(self, t, ps):
+        self.obtain_optimal_route(t, ps)
         if self.Flag:
-            self.obtain_optimal_route(t, ps)
-            return self.Y
+            return self.Y, self.Flag
         else:
-            return ps.get_last_Y_policy()
+            return ps.get_last_Y_policy(), self.Flag
 
     def get_Y(self):
         return self.Y

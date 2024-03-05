@@ -4,18 +4,16 @@
 #      Goals: the hyperparameters for TOQN                    #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 import os
-request_num = 5
+request_num = 5 # 5 8 6 4
 candidate_route_num = 3
 nodes_num = 18
-topology_data_path = 'D:\\pycharm\\OTOH\\Topology\\data\\topology-myself\\topology.csv'
+topology_data_path = os.getcwd() + "\\Topology\\data\\topology-myself\\topology.csv"
 volumn_upper = 10
 volumn_lower = 2
-
-T_thr = 10
 
 # fidelity threshold
 F_thr = 0.00000001
 # delay threshold
-D_thr = 260
+D_thr = 150
 
 topology_myself_nodes_num = 18
