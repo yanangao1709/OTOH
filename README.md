@@ -44,7 +44,7 @@ The following file diagram depicts an outline of the code, with explanations
 regarding key modules in our code. 
 
 ```
-LOMAQ
+OTOH
 └───documentation (includes some figures from the paper)   
 └───results (where local results are stored)   
 └───scripts (runnable scripts that are described above)  
@@ -53,14 +53,14 @@ LOMAQ
 │   └───envs (used environments, includes multi_cart (Coupled Multi Cart Pole), multi_particle (Bounded Cooperative Navigation), payoff_matrix....
 │   └───reward_decomposition (includes the full implementation for our RD method)
 │   └───learners (the main learning loop, bellman updates)
-│   │   │   q_learner (a modified q_learner that supports local rewards and rweard decomposition)
+│   │   │   q_learner (a modified q_learner that supports local rewards and reward decomposition)
 │   │   │   ...
 │   └───modules (NN module specifications)
 │   │   └───mixers (Mixing layers specifications)
-│   │   │   │   gcn (a GCN implementation for LOMAQ, occasionly used)
+│   │   │   │   gcn (a GCN implementation for LOMAQ, occasionally used)
 │   │   │   │   lomaq.py (The main specification of our mixing networks)
 │   │   │   │   ...
-│   └───controllers (controls a set of agent utlity networks)
+│   └───controllers (controls a set of agent utility networks)
 │   │   │   hetro_controller.py (an agent controller that doesn't implement parameter sharing)
 │   │   │   ...
 │   └───components (general components for LOMAQ)
