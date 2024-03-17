@@ -1,6 +1,6 @@
 # OTOH: Online Transmission Optimization via High-Dimensional Entanglement
 
-Yanan Gao, Song Yang, Fan Li, Liehuang Zhu, Stojan Trajanovski, Xiaoming Fu
+Yanan Gao, Song Yang, Fan Li, Youqi Li, Liehuang Zhu, Stojan Trajanovski, Xiaoming Fu
 
 This is the official implementation of our paper that is submitted to the journal of IEEE/ACM Transactions on Networking.
 
