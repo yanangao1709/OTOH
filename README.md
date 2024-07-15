@@ -1,8 +1,8 @@
 # OTOH: Online Transmission Optimization via High-Dimensional Entanglement
 
-Yanan Gao, Song Yang, Fan Li, Youqi Li, Liehuang Zhu, Stojan Trajanovski, Xiaoming Fu
+Yanan Gao, Song Yang, Fan Li, etc.
 
-This is the official implementation of our paper that is submitted to the journal of IEEE/ACM Transactions on Networking.
+This is the last version of the online transmission framework.
 
 ## Installation and Run
 (1) Install Gurobipy according to [link](https://pypi.org/project/gurobipy/). It is free for a student or staff member of an academic institution.
