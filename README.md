@@ -43,6 +43,7 @@ for the current algorithm. An example of this is `learning_rate`.
 The following file diagram depicts an outline of the code, with explanations
 regarding key modules in our code. 
 
+<!--
 ```
 OTOH
 └───documentation (includes some figures from the paper)   
@@ -75,3 +76,4 @@ OTOH
 │   requirements.txt (all the necessary packages for running the code)
 │   ...
 ```
+-->
